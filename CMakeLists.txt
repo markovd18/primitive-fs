@@ -1,7 +1,28 @@
 cmake_minimum_required(VERSION 3.0)
 project(primitive_fs)
 
+#setting the language standard
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(primitive_fs main.cpp)
+#setting variable for src directory
+set(SRC ${PROJECT_SOURCE_DIR}/src)
+#setting main src directory
+set(MAIN_SRC ${SRC}/main)
+
+#finding all source files in src/main directory
+file(GLOB COMMON ${MAIN_SRC}/common/*.h ${MAIN_SRC}/common/*.cpp)
+file(GLOB APP ${MAIN_SRC}/app/*.h ${MAIN_SRC}/app/*.cpp)
+file(GLOB FS ${MAIN_SRC}/fs/*.h ${FS}/fs/*.cpp)
+
+#finding all source files in src directory
+file(GLOB MAIN ${COMMON} ${APP} ${FS} ${MAIN_SRC}/main.cpp)
+file(GLOB UTILS ${SRC}/utils/*.h ${SRC}/utils/*.cpp)
+
+#creating one file with all sources for convenience
+file(GLOB SOURCES ${MAIN} ${UTILS})
+
+#creating executable
+add_executable(primitive_fs ${SOURCES})
+
+#setting output directory for generated executable to the project root
 set_target_properties(primitive_fs PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
