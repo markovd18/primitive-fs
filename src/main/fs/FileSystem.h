@@ -6,6 +6,9 @@
 #define PRIMITIVE_FS_FILESYSTEM_H
 
 #include <string>
+#include <memory>
+#include <iostream>
+#include "DataFile.h"
 
 /**
  * Represents the virtual file system loaded by the application. File system is represented by one file where
@@ -15,10 +18,14 @@
 class FileSystem {
 public: //public attributes
 private: //private attributes
-    //TODO new class DataFile or just store std::string??
+    /**
+     * The data file representing the file system.
+     */
+    std::unique_ptr<DataFile> dataFile;
 public: //public methods
-    explicit FileSystem(const std::string& fileName){
-        //TBD
+    explicit FileSystem(const std::string& fileName)
+        : dataFile(std::make_unique<DataFile>(fileName)){
+        //
     }
 private: //private methods
 };

@@ -13,9 +13,10 @@ set(MAIN_SRC ${SRC}/main)
 file(GLOB COMMON ${MAIN_SRC}/common/*.h ${MAIN_SRC}/common/*.cpp)
 file(GLOB APP ${MAIN_SRC}/app/*.h ${MAIN_SRC}/app/*.cpp)
 file(GLOB FS ${MAIN_SRC}/fs/*.h ${FS}/fs/*.cpp)
+file(GLOB COMMAND ${MAIN_SRC}/command/*.h ${MAIN_SRC}/command/*.cpp)
 
 #finding all source files in src directory
-file(GLOB MAIN ${COMMON} ${APP} ${FS} ${MAIN_SRC}/main.cpp)
+file(GLOB MAIN ${COMMON} ${APP} ${FS} ${COMMAND} ${MAIN_SRC}/main.cpp)
 file(GLOB UTILS ${SRC}/utils/*.h ${SRC}/utils/*.cpp)
 
 #creating one file with all sources for convenience

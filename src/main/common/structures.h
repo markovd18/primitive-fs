@@ -16,7 +16,7 @@ constexpr int32_t FREE_INODE_ID = -1;
 /**
  * Default cluster size in bytes
  */
-constexpr int32_t CLUSTER_SIZE = 32;
+constexpr int32_t CLUSTER_SIZE = 512;
 /**
  * Length of directory item name (8 chars + 3 chars for extension + \0)
  */
@@ -90,7 +90,8 @@ void initializeSuperblock(struct superblock& superblock, const int32_t diskSize)
     superblock.clusterSize = CLUSTER_SIZE;
     superblock.clusterCount; //TODO dopočítat??
     superblock.inodeBitmapStartAddress = sizeof(struct superblock);
-    superblock.dataBitmapStartAddress; //TODO dopočítat??
+    superblock.dataBitmapStartAddress = superblock.inodeBitmapStartAddress + 100;
+    superblock.inodeStartAddress =
     //...
 
 }

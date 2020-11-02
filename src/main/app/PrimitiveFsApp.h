@@ -6,12 +6,23 @@
 #define PRIMITIVE_FS_PRIMITIVEFSAPP_H
 
 #include <string>
+#include <memory>
+#include "../fs/FileSystem.h"
+#include "../command/Command.h"
 
 /**
  * Represents the entire application.
  */
 class PrimitiveFsApp {
-private: //TODO [markovda] create class representing the file representing the file system and set it as private attrib
+private: //private attributes
+    /**
+     * File system that is manipulated with by this app.
+     */
+    std::unique_ptr<FileSystem> fileSystem;
+    /**
+     * CLI indicator of awaiting user input
+     */
+    inline const static std::string CLI_MARKER = "/>";
 public: //public methods
 
     PrimitiveFsApp() = default;
@@ -25,6 +36,28 @@ public: //public methods
      * @param fileName  relative path (or name) to the file representing the file system
      */
     void run(const std::string& fileName);
+
+    /**
+     * Starts waiting for user input from CLI. Manages the resolution of user requests. Returns information about whether
+     * there was exit instruction or instruction to run some other function like copying a file.
+     *
+     * @return  UserRequest#EXIT if there was request to exit the application, otherwise UserRequest#RUN_COMMAND
+     */
+    CommandType manageUserInput();
+
+    /**
+     * Waits for and parses user input from CLI and returns it as an appropriate class.
+     *
+     * @return class representing user input from CLI
+     */
+    Command getUserInput();
+private: //private methods
+    /**
+     * Prints CLI marker on console.
+     */
+    void printCliMarker(){
+        std::cout << CLI_MARKER;
+    }
 };
 
 
