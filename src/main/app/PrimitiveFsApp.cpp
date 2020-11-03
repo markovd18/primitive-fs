@@ -4,6 +4,7 @@
 
 #include "PrimitiveFsApp.h"
 #include "../command/Command.h"
+#include "../common/structures.h"
 
 void PrimitiveFsApp::run(const std::string& fileName) {
     fileSystem = std::make_unique<FileSystem>(fileName);
@@ -33,6 +34,7 @@ CommandType PrimitiveFsApp::manageUserInput() {
      */
     if (!command.getName().empty()) {
         //TODO run command
+        runCommand(command);
     }
 
     return CommandType::RUN_COMMAND;
@@ -76,4 +78,12 @@ Command PrimitiveFsApp::getUserInput() {
         command.setName(input);
         return command;
     }
+}
+
+void PrimitiveFsApp::runCommand(const Command &command) {
+    if (command.getName().empty()){
+        return;
+    }
+
+    //TODO validate command and it's parameters and execute it
 }

@@ -22,7 +22,7 @@ private: //private attributes
     /**
      * CLI indicator of awaiting user input
      */
-    inline const static std::string CLI_MARKER = "/>";
+    inline static char const* CLI_MARKER = "$ ";
 public: //public methods
 
     PrimitiveFsApp() = default;
@@ -51,12 +51,20 @@ public: //public methods
      * @return class representing user input from CLI
      */
     Command getUserInput();
+
+    /**
+     * Performs necessary validations before running the command and runs it.
+     *
+     * @param command command to run
+     */
+    void runCommand(const Command& command);
 private: //private methods
     /**
      * Prints CLI marker on console.
      */
     void printCliMarker(){
         std::cout << CLI_MARKER;
+        //TODO printing work directory too?? and cd command
     }
 };
 
