@@ -3,20 +3,20 @@
 //
 
 #include "PrimitiveFsApp.h"
-#include "../command/Command.h"
 #include "../common/structures.h"
+#include "../command/FunctionExecutor.h"
 
 void PrimitiveFsApp::run(const std::string& fileName) {
     fileSystem = std::make_unique<FileSystem>(fileName);
-
-    CommandType requestToExit;
+    //TODO move constructor
+    CommandType inputCommandType;
     /**
      * We run until there is request from user to shut down. Then we quit.
      */
     do {
-        requestToExit = manageUserInput();
+        inputCommandType = manageUserInput();
 
-    } while (requestToExit != CommandType::EXIT);
+    } while (inputCommandType != CommandType::EXIT);
 }
 
 CommandType PrimitiveFsApp::manageUserInput() {
@@ -33,7 +33,6 @@ CommandType PrimitiveFsApp::manageUserInput() {
      * If empty command was passed, we ignore it.
      */
     if (!command.getName().empty()) {
-        //TODO run command
         runCommand(command);
     }
 
@@ -85,5 +84,8 @@ void PrimitiveFsApp::runCommand(const Command &command) {
         return;
     }
 
-    //TODO validate command and it's parameters and execute it
+    Function function = FunctionExecutor::getFunction(command.getName());
+    function(command.getParameters(), fileSystem->getDataFile());
+    //doesn't compile atm - move constructor for DataFile and FileSystem if needed first
+    //or change the parameters of fnct:: functions to pointer to DataFile
 }

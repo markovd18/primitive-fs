@@ -27,6 +27,11 @@ public: //public methods
         : dataFile(std::make_unique<DataFile>(fileName)){
         //
     }
+
+    const std::unique_ptr<DataFile> &getDataFile() const {
+        return dataFile;
+    }
+
 private: //private methods
 };
 

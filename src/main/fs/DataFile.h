@@ -21,7 +21,7 @@ private: //private attributes
     const std::string fileName;
 
 public: //public methods
-    explicit DataFile(std::string fileName)
+    explicit DataFile(const std::string& fileName)
         : fileName(std::move(fileName)){
         //
     }
