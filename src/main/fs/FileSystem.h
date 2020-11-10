@@ -21,14 +21,19 @@ private: //private attributes
     /**
      * The data file representing the file system.
      */
-    std::unique_ptr<DataFile> dataFile;
+    DataFile dataFile;
 public: //public methods
     explicit FileSystem(const std::string& fileName)
-        : dataFile(std::make_unique<DataFile>(fileName)){
+        : dataFile(fileName){
         //
     }
 
-    const std::unique_ptr<DataFile> &getDataFile() const {
+    explicit FileSystem(std::string&& fileName)
+        : dataFile(std::forward<std::string>(fileName)) {
+
+    }
+
+    const DataFile &getDataFile() const {
         return dataFile;
     }
 

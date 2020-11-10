@@ -1,3 +1,7 @@
+#
+# Author: markovd@students.zcu.cz
+#
+
 cmake_minimum_required(VERSION 3.0)
 project(primitive_fs)
 

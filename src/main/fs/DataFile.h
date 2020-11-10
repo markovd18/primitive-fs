@@ -22,6 +22,11 @@ private: //private attributes
 
 public: //public methods
     explicit DataFile(const std::string& fileName)
+        : fileName(fileName){
+        //
+    }
+
+    explicit DataFile(const std::string&& fileName)
         : fileName(std::move(fileName)){
         //
     }

@@ -67,7 +67,7 @@ public:
         strcpy(volumeDescription.data(), "Primitive file system");
         diskSize = newDiskSize;
         clusterSize = CLUSTER_SIZE;
-        //clusterCount; //TODO dopočítat??
+        //clusterCount;
         inodeBitmapStartAddress = sizeof(struct superblock);
         dataBitmapStartAddress = inodeBitmapStartAddress + 100;
         inodeStartAddress = dataBitmapStartAddress + 100;

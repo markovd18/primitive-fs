@@ -1,5 +1,5 @@
 //
-// Created by markovda on 04.11.20.
+// Author: markovd@students.zcu.cz
 //
 
 #include <vector>
@@ -11,4 +11,5 @@ void fnct::format(const std::vector <std::string>& parameters, const DataFile& d
         std::cout << parameter << '\n';
     }
     std::cout << dataFile.getFileName();
+    //TODO format
 }

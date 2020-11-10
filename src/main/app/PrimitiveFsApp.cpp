@@ -8,7 +8,6 @@
 
 void PrimitiveFsApp::run(const std::string& fileName) {
     fileSystem = std::make_unique<FileSystem>(fileName);
-    //TODO move constructor
     CommandType inputCommandType;
     /**
      * We run until there is request from user to shut down. Then we quit.
@@ -85,7 +84,12 @@ void PrimitiveFsApp::runCommand(const Command &command) {
     }
 
     Function function = FunctionExecutor::getFunction(command.getName());
-    function(command.getParameters(), fileSystem->getDataFile());
-    //doesn't compile atm - move constructor for DataFile and FileSystem if needed first
-    //or change the parameters of fnct:: functions to pointer to DataFile
+    try {
+        function(command.getParameters(), fileSystem->getDataFile());
+    } catch (const std::bad_function_call& exp) {
+        /**
+         * If passed command isn't implemented, we print error message and wait for another command.
+         */
+        std::cout << "Command \"" << command.getName() << "\" not found\n";
+    }
 }
