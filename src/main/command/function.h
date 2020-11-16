@@ -10,10 +10,10 @@
  */
 #include <vector>
 #include <string>
-#include "../fs/DataFile.h"
+#include "../fs/FileSystem.h"
 
 namespace fnct {
-    void format(const std::vector<std::string>& parameters, const DataFile& dataFile);
-    void incp(const std::vector<std::string>& parameters, const DataFile& dataFile);
+    void format(const std::vector<std::string>& parameters, const FileSystem* dataFile);
+    void incp(const std::vector<std::string>& parameters, const FileSystem* dataFile);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H

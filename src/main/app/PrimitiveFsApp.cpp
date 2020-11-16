@@ -4,10 +4,17 @@
 
 #include "PrimitiveFsApp.h"
 #include "../common/structures.h"
-#include "../command/FunctionExecutor.h"
+#include "../command/FunctionMapper.h"
 
-void PrimitiveFsApp::run(const std::string& fileName) {
-    fileSystem = std::make_unique<FileSystem>(fileName);
+PrimitiveFsApp::PrimitiveFsApp(const std::string& fileName) {
+    fileSystem = new FileSystem(fileName);
+}
+
+PrimitiveFsApp::~PrimitiveFsApp() {
+    delete fileSystem;
+}
+
+void PrimitiveFsApp::run() {
     CommandType inputCommandType;
     /**
      * We run until there is request from user to shut down. Then we quit.
@@ -40,13 +47,16 @@ CommandType PrimitiveFsApp::manageUserInput() {
 
 Command PrimitiveFsApp::getUserInput() {
     std::string input;
-    /**
-     * We read the user input.
-     */
+
     getline(std::cin, input);
     if (input.empty()) {
         return Command();
     }
+
+    return parseUserInput(input);
+}
+
+Command PrimitiveFsApp::parseUserInput(std::string &input) {
     /**
      * We need to parse the input by the space delimiter to get the name of the command
      * and passed parameters.
@@ -83,9 +93,9 @@ void PrimitiveFsApp::runCommand(const Command &command) {
         return;
     }
 
-    Function function = FunctionExecutor::getFunction(command.getName());
+    Function function = FunctionMapper::getFunction(command.getName());
     try {
-        function(command.getParameters(), fileSystem->getDataFile());
+        function(command.getParameters(), fileSystem);
     } catch (const std::bad_function_call& exp) {
         /**
          * If passed command isn't implemented, we print error message and wait for another command.

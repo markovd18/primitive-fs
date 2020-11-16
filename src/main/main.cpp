@@ -1,3 +1,7 @@
+//
+// Author: markovd@students.zcu.cz
+//
+
 #include <iostream>
 
 #include "../utils/InputParamsValidator.h"
@@ -17,8 +21,7 @@ int main(int argc, char** argv) {
     /**
      * We have valid arguments, we can run.
      */
-    PrimitiveFsApp application;
-    application.run(argv[1]);
-
+    PrimitiveFsApp application(argv[1]);
+    application.run();
     return EXIT_SUCCESS;
 }

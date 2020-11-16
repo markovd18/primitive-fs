@@ -25,12 +25,13 @@ file(GLOB UTILS ${SRC}/utils/*.h ${SRC}/utils/*.cpp)
 
 #creating one file with all sources for convenience
 file(GLOB SOURCES ${MAIN} ${UTILS})
-#adding library with file system function definitions
+#adding libraries
 add_library(FUNCTIONS STATIC ${MAIN_SRC}/command/function.cpp)
+add_library(FILE_SYSTEM ${MAIN_SRC}/fs/FileSystem.cpp)
 #creating executable
 add_executable(primitive_fs ${SOURCES})
 
 #linking the library with executable
-target_link_libraries(primitive_fs FUNCTIONS)
+target_link_libraries(primitive_fs PUBLIC FUNCTIONS FILE_SYSTEM)
 #setting output directory for generated executable to the project root
 set_target_properties(primitive_fs PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
