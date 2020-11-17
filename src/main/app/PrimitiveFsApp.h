@@ -9,6 +9,7 @@
 #include <memory>
 #include "../fs/FileSystem.h"
 #include "../command/Command.h"
+#include "../command/FunctionMapper.h"
 
 /**
  * Represents the entire application.
@@ -48,13 +49,6 @@ public: //public methods
     CommandType manageUserInput();
 
     /**
-     * Waits for and parses user input from CLI and returns it as an appropriate class.
-     *
-     * @return class representing user input from CLI
-     */
-    Command getUserInput();
-
-    /**
      * Performs necessary validations before running the command and runs it.
      *
      * @param command command to run
@@ -70,6 +64,26 @@ private: //private methods
     }
 
     /**
+     * Executes given function and provides it with given vector of parameters.
+     *
+     * @param function function to execute
+     * @param parameters function parameters
+     * @returns 0 if function is called successfully, 1 if function wasn't found
+     */
+    int executeFunction(const Function& function, const std::vector<std::string>& parameters);
+};
+
+/**
+ * Namespace for generic helper functions for managing the runtime of this application.
+ */
+namespace app {
+    /**
+     * Waits for and parses user input from CLI and returns it as an appropriate class.
+     *
+     * @return class representing user input from CLI
+     */
+    Command getUserInput(std::istream& inputStream);
+    /**
      * Parses user input into one command. Input is parsed by space delimiter. First token is considered to be a function name
      * and other tokens are considered to be function parameters.
      *
@@ -77,7 +91,11 @@ private: //private methods
      * @return parsed command with parameters
      */
     Command parseUserInput(std::string& input);
-};
+    /**
+     * Waits for created child process to finish.
+     */
+    void waitForChildProcess();
+}
 
 
 #endif

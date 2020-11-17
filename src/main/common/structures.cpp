@@ -20,7 +20,7 @@ namespace fs {
         inodeBitmapStartAddress = sizeof(Superblock);
         dataBitmapStartAddress = inodeBitmapStartAddress + inodeCount;
 
-        size_t inodeStorageSize = inodeCount * sizeof(struct inode);
+        size_t inodeStorageSize = inodeCount * sizeof(Inode);
         /**
          * Size of storage for data-block bitmap and blocks themselves.
          */
@@ -94,5 +94,59 @@ namespace fs {
 
     const std::array<char, DirectoryItem::DIR_ITEM_NAME_LENGTH> &DirectoryItem::getItemName() const {
         return itemName;
+    }
+
+
+    Inode::Inode(int32_t nodeId, bool isDirectory, int32_t fileSize) : nodeId(nodeId), isDirectory(isDirectory),
+                                                                       fileSize(fileSize), references(1) {
+        directLinks.fill(EMPTY_LINK);
+        indirectLinks.fill(EMPTY_LINK);
+    }
+
+    int32_t Inode::getNodeId() const {
+        return nodeId;
+    }
+
+    void Inode::setNodeId(int32_t nodeId) {
+        this->nodeId = nodeId;
+    }
+
+    bool Inode::isDirectory1() const {
+        return isDirectory;
+    }
+
+    void Inode::setIsDirectory(bool isDirectory) {
+        this->isDirectory = isDirectory;
+    }
+
+    int8_t Inode::getReferences() const {
+        return references;
+    }
+
+    void Inode::setReferences(int8_t references) {
+        this->references = references;
+    }
+
+    int32_t Inode::getFileSize() const {
+        return fileSize;
+    }
+
+    void Inode::setFileSize(int32_t fileSize) {
+        this->fileSize = fileSize;
+    }
+    const std::array<int32_t, Inode::DIRECT_LINKS_COUNT> &Inode::getDirectLinks() const {
+        return directLinks;
+    }
+
+    const std::array<int32_t, Inode::INDIRECT_LINKS_COUNT> &Inode::getIndirectLinks() const {
+        return indirectLinks;
+    }
+
+    void Inode::addDirectLink(int32_t address) {
+        //TODO
+    }
+
+    void Inode::addIndirectLink(int32_t address) {
+        //TODO
     }
 }

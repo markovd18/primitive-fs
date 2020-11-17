@@ -22,7 +22,8 @@ void fnct::format(const std::vector <std::string>& parameters, const FileSystem*
     fs::Superblock superblock(StringNumberConverter::convertStringToInt(diskSizeStr).value);
 
     if(!fileSystem->initialize(superblock)) {
-        //
+        std::cout << "CANNOT CREATE FILE\n";
+        exit(EXIT_FAILURE);
     }
 
 

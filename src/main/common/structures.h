@@ -18,6 +18,10 @@ namespace fs {
      * ID of free i-node
      */
     constexpr int32_t FREE_INODE_ID = -1;
+    /**
+     * Value of empty direct of indirect link to data file in i-node.
+     */
+    constexpr int32_t EMPTY_LINK = -1;
 
     /**
      * One I-Node describes exactly one file. Directory is also file and can be described by I-Node. It also
@@ -25,18 +29,44 @@ namespace fs {
      * 5 direct links allowed and 2 indirect links allowed, if one stored big files and would run out of direct links.
      * Every Inode is completely represented and can be found by it's ID.
      */
-    struct inode {
-    private:
+    class Inode {
+    public: //public attributes
         static constexpr size_t DIRECT_LINKS_COUNT = 5;     //number of allowed direct links to data blocks
         static constexpr size_t INDIRECT_LINKS_COUNT = 2;   // number of allowed indirect links to data blocks
-    public:
+    private: //private attributes
         int32_t nodeId;                     //i-node id - if nodeId = FREE_INODE_ID, then the inode is free
         bool isDirectory;                   //file or directory
         int8_t references;                  //number of references on i-node - used for hardlinks
         int32_t fileSize;                   //size of file in bytes
         std::array<int32_t, DIRECT_LINKS_COUNT> directLinks; // direct links to data blocks
         std::array<int32_t, INDIRECT_LINKS_COUNT> indirectLinks;   // indirect links to data blocks
-    } typedef Inode;
+    public: //public methods
+        Inode(int32_t nodeId, bool isDirectory, int32_t fileSize);
+
+        [[nodiscard]] int32_t getNodeId() const;
+
+        void setNodeId(int32_t nodeId);
+
+        [[nodiscard]] bool isDirectory1() const;
+
+        void setIsDirectory(bool isDirectory);
+
+        [[nodiscard]] int8_t getReferences() const;
+
+        void setReferences(int8_t references);
+
+        [[nodiscard]] int32_t getFileSize() const;
+
+        void setFileSize(int32_t fileSize);
+
+        [[nodiscard]] const std::array<int32_t, DIRECT_LINKS_COUNT> &getDirectLinks() const;
+
+        [[nodiscard]] const std::array<int32_t, INDIRECT_LINKS_COUNT> &getIndirectLinks() const;
+
+        void addDirectLink(int32_t address);
+
+        void addIndirectLink(int32_t address);
+    };
 
     /**
      * Super-block is the most important structure in the file system. It contains all the much needed information
@@ -44,9 +74,9 @@ namespace fs {
      * at the front of file system.
      */
     class Superblock {
-    public:
+    public: //public attributes
         static constexpr size_t CLUSTER_SIZE = 1024;            //default cluster size in bytes
-    private:
+    private: //private attributes
         static constexpr size_t SIGNATURE_LENGTH = 10;          //length of author's signature
         static constexpr size_t VOLUME_DESC_LENGTH = 20;        //volume description length
         inline static const char* AUTHOR_NAME = "markovda";     //author's name
@@ -62,7 +92,7 @@ namespace fs {
         int32_t inodeStartAddress;          //start address of i-nodes
         int32_t dataStartAddress;           //start address of data blocks
 
-    public:
+    public: //public methods
         /**
          * Initializes super-block to default values
          *
@@ -97,11 +127,12 @@ namespace fs {
      * carried by the inode structure with provided id.
      */
     class DirectoryItem {
-    private:
+    public: //public attributes
         static constexpr size_t DIR_ITEM_NAME_LENGTH = 12; //length of directory item name (8 chars + 3 chars for extension + \0)
-    public:
+    private: //private attributes
         int32_t inodeId;                    //id of corresponding i-node
         std::array<char, DIR_ITEM_NAME_LENGTH> itemName;   //name of directory item
+    public: //public methods
         /**
          * Default constructor for initialization of directory item.
          *
