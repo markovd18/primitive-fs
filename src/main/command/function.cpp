@@ -10,7 +10,7 @@
 #include "../fs/FileSystem.h"
 #include "function.h"
 
-void fnct::format(const std::vector <std::string>& parameters, const FileSystem* fileSystem) {
+void fnct::format(const std::vector <std::string>& parameters, FileSystem* fileSystem) {
 
     if (!InputParamsValidator::validateFormatFunctionPatameters(parameters)) {
         std::cout << "Invalid parameters passed!\n"
@@ -29,6 +29,6 @@ void fnct::format(const std::vector <std::string>& parameters, const FileSystem*
 
 }
 
-void fnct::incp(const std::vector<std::string> &parameters, const FileSystem* fileSystem) {
+void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSystem) {
 
 }

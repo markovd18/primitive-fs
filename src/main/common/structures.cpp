@@ -142,8 +142,13 @@ namespace fs {
         return indirectLinks;
     }
 
-    void Inode::addDirectLink(int32_t address) {
-        //TODO
+    void Inode::addDirectLink(int32_t index) {
+        for (int & directLink : directLinks) {
+            if (directLink == fs::EMPTY_LINK) {
+                directLink = index;
+                return;
+            }
+        }
     }
 
     void Inode::addIndirectLink(int32_t address) {

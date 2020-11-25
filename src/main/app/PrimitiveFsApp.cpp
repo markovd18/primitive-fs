@@ -5,8 +5,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "PrimitiveFsApp.h"
-#include "../common/structures.h"
-#include "../command/FunctionMapper.h"
 
 PrimitiveFsApp::PrimitiveFsApp(const std::string& fileName) {
     fileSystem = new FileSystem(fileName);

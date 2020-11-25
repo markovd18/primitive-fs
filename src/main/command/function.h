@@ -13,7 +13,7 @@
 #include "../fs/FileSystem.h"
 
 namespace fnct {
-    void format(const std::vector<std::string>& parameters, const FileSystem* dataFile);
-    void incp(const std::vector<std::string>& parameters, const FileSystem* dataFile);
+    void format(const std::vector<std::string>& parameters, FileSystem* dataFile);
+    void incp(const std::vector<std::string>& parameters, FileSystem* dataFile);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H

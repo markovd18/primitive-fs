@@ -63,9 +63,9 @@ namespace fs {
 
         [[nodiscard]] const std::array<int32_t, INDIRECT_LINKS_COUNT> &getIndirectLinks() const;
 
-        void addDirectLink(int32_t address);
+        void addDirectLink(int32_t index);
 
-        void addIndirectLink(int32_t address);
+        void addIndirectLink(int32_t index);
     };
 
     /**

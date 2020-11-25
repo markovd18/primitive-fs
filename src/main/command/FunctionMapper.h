@@ -11,7 +11,7 @@
 #include "function.h"
 
 /** For simplicity we define new type */
-typedef std::function<void(const std::vector<std::string>&, const FileSystem*)> Function;
+typedef std::function<void(const std::vector<std::string>&, FileSystem*)> Function;
 
 /**
  * Utility class used for executing individual functions upon the file system. FunctionMapper contains a map
