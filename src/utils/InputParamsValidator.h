@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <charconv>
 #include <iostream>
+#include <filesystem>
 
 /**
  * Static utility class for input parameter validation.
@@ -24,6 +25,11 @@ private:
      * Required number of parameters to pass to the fnct::format function.
      */
     static constexpr int FORMAT_FUNCTION_PARAMS_COUNT = 1;
+
+    /**
+     * Required number of parameters to pass to the fnct::incp function.
+     */
+    static constexpr int INCP_FUNCTION_PARAMS_COUNT = 2;
 
 public:
 
@@ -64,6 +70,23 @@ public:
         }
 
         if (!isNumber(parameters.at(0))) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     *
+     * @param parameters
+     * @return
+     */
+    static bool validateIncpFunctionParameters(const std::vector<std::string>& parameters) {
+        if (parameters.size() < INCP_FUNCTION_PARAMS_COUNT) {
+            return false;
+        }
+
+        if (!std::filesystem::exists(parameters.at(0)) || std::filesystem::is_directory(parameters.at(0))) {
             return false;
         }
 

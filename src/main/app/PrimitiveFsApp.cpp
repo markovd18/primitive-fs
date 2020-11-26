@@ -4,14 +4,15 @@
 
 #include <unistd.h>
 #include <sys/wait.h>
+#include <filesystem>
 #include "PrimitiveFsApp.h"
 
 PrimitiveFsApp::PrimitiveFsApp(const std::string& fileName) {
-    fileSystem = new FileSystem(fileName);
+    m_fileSystem = new FileSystem(fileName);
 }
 
 PrimitiveFsApp::~PrimitiveFsApp() {
-    delete fileSystem;
+    delete m_fileSystem;
 }
 
 void PrimitiveFsApp::run() {
@@ -80,7 +81,7 @@ void PrimitiveFsApp::runCommand(const Command &command) {
 
 int PrimitiveFsApp::executeFunction(const Function &function, const std::vector<std::string> &parameters) {
     try {
-        function(parameters, fileSystem);
+        function(parameters, m_fileSystem);
         return 0;
     } catch (const std::bad_function_call& exp) {
         return 1;

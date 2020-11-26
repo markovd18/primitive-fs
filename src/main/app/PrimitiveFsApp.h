@@ -19,7 +19,7 @@ private: //private attributes
     /**
      * File system that is manipulated with by this app.
      */
-    FileSystem* fileSystem;
+    FileSystem* m_fileSystem;
     /**
      * CLI indicator of awaiting user input
      */
@@ -54,6 +54,11 @@ public: //public methods
      * @param command command to run
      */
     void runCommand(const Command& command);
+
+    /**
+     *  Deleted, assigning would cause trouble.
+     */
+    PrimitiveFsApp& operator=(PrimitiveFsApp& other) = delete;
 private: //private methods
     /**
      * Prints CLI marker on console.

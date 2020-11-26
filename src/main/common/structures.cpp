@@ -6,25 +6,25 @@
 
 namespace fs {
 
-    Superblock::Superblock(const size_t newDiskSize) {
-        strncpy(signature.data(), AUTHOR_NAME, SIGNATURE_LENGTH);
-        strncpy(volumeDescription.data(), VOLUME_DESCRIPTION, VOLUME_DESC_LENGTH);
+    Superblock::Superblock(const size_t newDiskSize) : m_signature(), m_volumeDescription() {
+        strncpy(m_signature.data(), AUTHOR_NAME, SIGNATURE_LENGTH);
+        strncpy(m_volumeDescription.data(), VOLUME_DESCRIPTION, VOLUME_DESC_LENGTH);
         /**
          * Converting passed size in megabytes to bytes.
          */
-        diskSize = newDiskSize * 1000000;
+        m_diskSize = newDiskSize * 1000000;
         /**
          * Setting the i-node count to 1/1000 of the disk size
          */
-        inodeCount = diskSize / 1000;
-        inodeBitmapStartAddress = sizeof(Superblock);
-        dataBitmapStartAddress = inodeBitmapStartAddress + inodeCount;
+        m_inodeCount = m_diskSize / 1000;
+        m_inodeBitmapStartAddress = sizeof(Superblock);
+        m_dataBitmapStartAddress = m_inodeBitmapStartAddress + m_inodeCount;
 
-        size_t inodeStorageSize = inodeCount * sizeof(Inode);
+        size_t inodeStorageSize = m_inodeCount * sizeof(Inode);
         /**
          * Size of storage for data-block bitmap and blocks themselves.
          */
-        size_t dataMapAndStorageSize = diskSize - dataBitmapStartAddress - inodeStorageSize;
+        size_t dataMapAndStorageSize = m_diskSize - m_dataBitmapStartAddress - inodeStorageSize;
         /**
          * Maximum cluster count if we didn't store data-block bitmap.
          */
@@ -35,123 +35,123 @@ namespace fs {
             clustersToRemove++;
         }
 
-        clusterCount = clusterCountNoMap - clustersToRemove;
+        m_clusterCount = clusterCountNoMap - clustersToRemove;
 
-        inodeStartAddress = dataBitmapStartAddress + clusterCount;
-        dataStartAddress = inodeStartAddress + inodeStorageSize;
+        m_inodeStartAddress = m_dataBitmapStartAddress + m_clusterCount;
+        m_dataStartAddress = m_inodeStartAddress + inodeStorageSize;
     }
 
     const std::array<char, Superblock::SIGNATURE_LENGTH> &Superblock::getSignature() const {
-        return signature;
+        return m_signature;
     }
 
     const std::array<char, Superblock::VOLUME_DESC_LENGTH> &Superblock::getVolumeDescription() const {
-        return volumeDescription;
+        return m_volumeDescription;
     }
 
     int32_t Superblock::getDiskSize() const {
-        return diskSize;
+        return m_diskSize;
     }
 
     int32_t Superblock::getClusterCount() const {
-        return clusterCount;
+        return m_clusterCount;
     }
 
     int32_t Superblock::getInodeBitmapStartAddress() const {
-        return inodeBitmapStartAddress;
+        return m_inodeBitmapStartAddress;
     }
 
     int32_t Superblock::getDataBitmapStartAddress() const {
-        return dataBitmapStartAddress;
+        return m_dataBitmapStartAddress;
     }
 
     int32_t Superblock::getInodeStartAddress() const {
-        return inodeStartAddress;
+        return m_inodeStartAddress;
     }
 
     int32_t Superblock::getDataStartAddress() const {
-        return dataStartAddress;
+        return m_dataStartAddress;
     }
 
     int32_t Superblock::getInodeCount() const {
-        return inodeCount;
+        return m_inodeCount;
     }
 
 
-    DirectoryItem::DirectoryItem(const std::string &itemName, const int32_t inodeId) {
+    DirectoryItem::DirectoryItem(const std::string &itemName, const int32_t inodeId) : m_inodeId(inodeId), m_itemName(){
         if (itemName.length() > 12) {
-            strncpy(this->itemName.data(), itemName.c_str(), DIR_ITEM_NAME_LENGTH);
+            strncpy(this->m_itemName.data(), itemName.c_str(), DIR_ITEM_NAME_LENGTH);
         } else {
-            strncpy(this->itemName.data(), itemName.c_str(), itemName.length());
+            strncpy(this->m_itemName.data(), itemName.c_str(), itemName.length());
         }
-
-        this->inodeId = inodeId;
     }
 
     int32_t DirectoryItem::getInodeId() const {
-        return inodeId;
+        return m_inodeId;
     }
 
     const std::array<char, DirectoryItem::DIR_ITEM_NAME_LENGTH> &DirectoryItem::getItemName() const {
-        return itemName;
+        return m_itemName;
     }
 
 
-    Inode::Inode(int32_t nodeId, bool isDirectory, int32_t fileSize) : nodeId(nodeId), isDirectory(isDirectory),
-                                                                       fileSize(fileSize), references(1) {
-        directLinks.fill(EMPTY_LINK);
-        indirectLinks.fill(EMPTY_LINK);
+    Inode::Inode(int32_t nodeId, bool isDirectory, int32_t fileSize) : m_nodeId(nodeId), m_isDirectory(isDirectory),
+                                                                       m_fileSize(fileSize), m_references(1), m_directLinks(), m_indirectLinks() {
+        m_directLinks.fill(EMPTY_LINK);
+        m_indirectLinks.fill(EMPTY_LINK);
     }
 
     int32_t Inode::getNodeId() const {
-        return nodeId;
+        return m_nodeId;
     }
 
     void Inode::setNodeId(int32_t nodeId) {
-        this->nodeId = nodeId;
+        m_nodeId = nodeId;
     }
 
-    bool Inode::isDirectory1() const {
-        return isDirectory;
+    bool Inode::isDirectory() const {
+        return m_isDirectory;
     }
 
     void Inode::setIsDirectory(bool isDirectory) {
-        this->isDirectory = isDirectory;
+        m_isDirectory = isDirectory;
     }
 
     int8_t Inode::getReferences() const {
-        return references;
+        return m_references;
     }
 
     void Inode::setReferences(int8_t references) {
-        this->references = references;
+        m_references = references;
     }
 
     int32_t Inode::getFileSize() const {
-        return fileSize;
+        return m_fileSize;
     }
 
     void Inode::setFileSize(int32_t fileSize) {
-        this->fileSize = fileSize;
+        m_fileSize = fileSize;
     }
     const std::array<int32_t, Inode::DIRECT_LINKS_COUNT> &Inode::getDirectLinks() const {
-        return directLinks;
+        return m_directLinks;
     }
 
     const std::array<int32_t, Inode::INDIRECT_LINKS_COUNT> &Inode::getIndirectLinks() const {
-        return indirectLinks;
+        return m_indirectLinks;
     }
 
-    void Inode::addDirectLink(int32_t index) {
-        for (int & directLink : directLinks) {
+    bool Inode::addDirectLink(int32_t index) {
+        for (int & directLink : m_directLinks) {
             if (directLink == fs::EMPTY_LINK) {
                 directLink = index;
-                return;
+                return true;
             }
         }
+        return false;
     }
 
-    void Inode::addIndirectLink(int32_t address) {
+    bool Inode::addIndirectLink(int32_t address) {
         //TODO
+        return false;
     }
 }

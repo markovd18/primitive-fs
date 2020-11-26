@@ -34,12 +34,12 @@ namespace fs {
         static constexpr size_t DIRECT_LINKS_COUNT = 5;     //number of allowed direct links to data blocks
         static constexpr size_t INDIRECT_LINKS_COUNT = 2;   // number of allowed indirect links to data blocks
     private: //private attributes
-        int32_t nodeId;                     //i-node id - if nodeId = FREE_INODE_ID, then the inode is free
-        bool isDirectory;                   //file or directory
-        int8_t references;                  //number of references on i-node - used for hardlinks
-        int32_t fileSize;                   //size of file in bytes
-        std::array<int32_t, DIRECT_LINKS_COUNT> directLinks; // direct links to data blocks
-        std::array<int32_t, INDIRECT_LINKS_COUNT> indirectLinks;   // indirect links to data blocks
+        int32_t m_nodeId;                     //i-node id - if nodeId = FREE_INODE_ID, then the inode is free
+        bool m_isDirectory;                   //file or directory
+        int8_t m_references;                  //number of references on i-node - used for hardlinks
+        int32_t m_fileSize;                   //size of file in bytes
+        std::array<int32_t, DIRECT_LINKS_COUNT> m_directLinks; // direct links to data blocks
+        std::array<int32_t, INDIRECT_LINKS_COUNT> m_indirectLinks;   // indirect links to data blocks
     public: //public methods
         Inode(int32_t nodeId, bool isDirectory, int32_t fileSize);
 
@@ -47,7 +47,7 @@ namespace fs {
 
         void setNodeId(int32_t nodeId);
 
-        [[nodiscard]] bool isDirectory1() const;
+        [[nodiscard]] bool isDirectory() const;
 
         void setIsDirectory(bool isDirectory);
 
@@ -63,9 +63,9 @@ namespace fs {
 
         [[nodiscard]] const std::array<int32_t, INDIRECT_LINKS_COUNT> &getIndirectLinks() const;
 
-        void addDirectLink(int32_t index);
+        bool addDirectLink(int32_t index);
 
-        void addIndirectLink(int32_t index);
+        bool addIndirectLink(int32_t index);
     };
 
     /**
@@ -81,16 +81,16 @@ namespace fs {
         static constexpr size_t VOLUME_DESC_LENGTH = 20;        //volume description length
         inline static const char* AUTHOR_NAME = "markovda";     //author's name
         inline static const char* VOLUME_DESCRIPTION = "Primitive file system"; //fs description
-        std::array<char, SIGNATURE_LENGTH> signature;               //FS author login
 
-        std::array<char, VOLUME_DESC_LENGTH> volumeDescription;     //FS description
-        int32_t diskSize;                   //FS size
-        int32_t inodeCount;                 //maximum number of i-nodes in file system
-        int32_t clusterCount;               //number of clusters in FS
-        int32_t inodeBitmapStartAddress;    //start address of inode bitmap
-        int32_t dataBitmapStartAddress;     //start address of data bitmap
-        int32_t inodeStartAddress;          //start address of i-nodes
-        int32_t dataStartAddress;           //start address of data blocks
+        std::array<char, SIGNATURE_LENGTH> m_signature;               //FS author login
+        std::array<char, VOLUME_DESC_LENGTH> m_volumeDescription;     //FS description
+        int32_t m_diskSize;                   //FS size
+        int32_t m_inodeCount;                 //maximum number of i-nodes in file system
+        int32_t m_clusterCount;               //number of clusters in FS
+        int32_t m_inodeBitmapStartAddress;    //start address of inode bitmap
+        int32_t m_dataBitmapStartAddress;     //start address of data bitmap
+        int32_t m_inodeStartAddress;          //start address of i-nodes
+        int32_t m_dataStartAddress;           //start address of data blocks
 
     public: //public methods
         /**
@@ -99,8 +99,7 @@ namespace fs {
          * @param diskSize      size of file system to be represented by this super-block
          */
         explicit Superblock(size_t newDiskSize);
-        /** We don't want instance with uninitialized values. */
-        Superblock() = delete;
+        Superblock() = default;
         /** Getter for author's signature. */
         [[nodiscard]] const std::array<char, SIGNATURE_LENGTH> &getSignature() const;
         /** Getter for volume description. */
@@ -130,8 +129,8 @@ namespace fs {
     public: //public attributes
         static constexpr size_t DIR_ITEM_NAME_LENGTH = 12; //length of directory item name (8 chars + 3 chars for extension + \0)
     private: //private attributes
-        int32_t inodeId;                    //id of corresponding i-node
-        std::array<char, DIR_ITEM_NAME_LENGTH> itemName;   //name of directory item
+        int32_t m_inodeId;                    //id of corresponding i-node
+        std::array<char, DIR_ITEM_NAME_LENGTH> m_itemName;   //name of directory item
     public: //public methods
         /**
          * Default constructor for initialization of directory item.
@@ -150,25 +149,69 @@ namespace fs {
      * Wrapper class for dynamic initialization of inode and data-block bitmaps.
      */
     class Bitmap {
-        u_char *bitmap;
-        size_t length;
+        /**
+         * The bitmap itself.
+         */
+        u_char *m_bitmap;
+        /**
+         * Length of the bitmap.
+         */
+        std::size_t m_length;
     public:
-        explicit Bitmap(const size_t length) {
-            bitmap = new u_char[length];
-            memset(bitmap, 0, length);
-            this->length = length;
+        explicit Bitmap(const std::size_t length = 0)
+                    : m_length(length), m_bitmap(length ? new u_char[length] : nullptr){
+            if (length) {
+                memset(m_bitmap, 0, length);
+            }
+        }
+
+        Bitmap(const fs::Bitmap &otherBitmap)
+                    : m_length(otherBitmap.m_length), m_bitmap(otherBitmap.m_length ? new u_char[otherBitmap.m_length] : nullptr){
+            if (m_length) {
+                memset(m_bitmap, 0, m_length);
+            }
+        }
+
+        /**
+         * Friend swap function, required for operator= and move constructor implementation.
+         *
+         * @param firstBitmap
+         * @param secondBitmap
+         */
+        friend void swap (fs::Bitmap& firstBitmap, fs::Bitmap& secondBitmap) {
+            // to enable ADL - maybe not necessary here, but good practice
+            using std::swap;
+
+            swap(firstBitmap.m_length, secondBitmap.m_length);
+            swap(firstBitmap.m_bitmap, secondBitmap.m_bitmap);
+        }
+
+        /**
+         * Move constructor.
+         *
+         * @param otherBitmap rvalue bitmap
+         */
+        Bitmap(fs::Bitmap&& otherBitmap) noexcept
+                    : Bitmap() {
+            swap(*this, otherBitmap);
+        }
+
+        Bitmap &operator=(fs::Bitmap otherBitmap){
+            swap(*this, otherBitmap);
+
+            return *this;
         }
 
         ~Bitmap(){
-            delete bitmap;
+            delete[] m_bitmap;
         }
 
         [[nodiscard]] u_char *getBitmap() const {
-            return bitmap;
+            return m_bitmap;
         }
 
         [[nodiscard]] size_t getLength() const {
-            return length;
+            return m_length;
         }
     };
 }
