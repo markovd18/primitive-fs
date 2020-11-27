@@ -85,11 +85,29 @@ bool FileSystem::initializeFromExisting() {
         return false;
     }
 
-    //TODO markovd
+    /// By default we start in the root directory.
+    m_currentDirPath = "/";
+    /// Load the inode representing current directory
+    dataFile.seekg(m_superblock.getInodeStartAddress(), std::ios_base::beg);
+    dataFile.read((char*)&m_currentDirInode, sizeof(fs::Inode));
     std::cout << "Initialized from existing file!\n";
     /// In the end we are successfully initialized
     m_initialized = true;
     return true;
+}
+
+int32_t FileSystem::getInodeId() const {
+    /// We go through the entire bitmap
+    for (std::size_t i = 0; i < m_inodeBitmap.getLength(); ++i) {
+        for (std::size_t j = 7; j >= 0; --j) {
+            if (!((m_inodeBitmap.getBitmap()[i] >> j) & 0b1)) {
+                /// If the bit is 0, we return it's index as the inode id
+                return i + (7 - j);
+            }
+        }
+    }
+    /// If no bit is free, we return FREE_INODE_ID
+    return fs::FREE_INODE_ID;
 }
 
 bool FileSystem::writeSuperblock(std::ofstream& dataFile, fs::Superblock &sb) {
@@ -109,6 +127,7 @@ bool FileSystem::initializeInodeBitmap(std::ofstream& dataFile) {
         return false;
     }
     m_inodeBitmap = std::move(fs::Bitmap(m_superblock.getInodeCount()));
+    /// We are initializing new file system, so there will be only one inode - for the root directory
     m_inodeBitmap.getBitmap()[0] = 0b10000000;
     return writeBitmap(dataFile, m_inodeBitmap, m_superblock.getInodeBitmapStartAddress());
 }
@@ -128,6 +147,7 @@ bool FileSystem::initializeDataBitmap(std::ofstream& dataFile) {
     }
 
     m_dataBitmap = std::move(fs::Bitmap(m_superblock.getInodeStartAddress() - m_superblock.getDataBitmapStartAddress()));
+    //TODO markovd initialization of data blocks for root only
     m_dataBitmap.getBitmap()[0] = 0b11100000;
     return writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
 }
@@ -168,4 +188,14 @@ bool FileSystem::readBitmap(std::ifstream &dataFile, fs::Bitmap &bitmap, int off
     dataFile.read((char*)bitmap.getBitmap(), bitmap.getLength());
 
     return !dataFile.bad();
+}
+
+void FileSystem::createFile(const std::string &path, const std::string &data) {
+
+    std::string currentDir = m_currentDirPath;
+
+    //TODO create cd function
+    //changeDirectory(path);
+
+
 }

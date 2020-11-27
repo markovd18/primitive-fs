@@ -65,7 +65,6 @@ private: //private methods
      */
     static void printCliMarker(){
         std::cout << CLI_MARKER;
-        //TODO printing work directory too?? and cd command
     }
 
     /**

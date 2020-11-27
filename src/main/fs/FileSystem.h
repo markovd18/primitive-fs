@@ -39,6 +39,14 @@ private: //private attributes
      * Bitmap of used and unused memory addresses for data blocks.
      */
     fs::Bitmap m_dataBitmap;
+    /**
+     * Inode of current working directory. Used for easier orientation.
+     */
+    fs::Inode m_currentDirInode;
+    /**
+     * Current working directory.
+     */
+    std::string m_currentDirPath;
 public: //public methods
     /**
      * Default constructor for initialization.
@@ -58,16 +66,6 @@ public: //public methods
         }
     }
 
-    /**
-     * Overloaded assignment operator, which copies the data-file name into this instance.
-     *
-     * @param otherFs other FileSystem instance
-     * @return reference to this FileSystem instance
-     */
-    FileSystem& operator=(FileSystem&& otherFs){
-        m_dataFileName = otherFs.m_dataFileName;
-        return *this;
-    }
 
     /**
      * Initializes the file system in data file. Writes super-block, bitmaps, and root directory inside.
@@ -91,6 +89,29 @@ public: //public methods
     [[nodiscard]] bool isInitialized() const {
         return m_initialized;
     }
+
+    /**
+     * Creates file in virtual file system on given path with given data.
+     *
+     * @param path path in virtual file system
+     * @param data data of the file
+     */
+    void createFile(const std::string& path, const std::string& data);
+
+    /**
+     * Returns the current working directory.
+     *
+     * @return current working directory
+     */
+    [[nodiscard]] const std::string& getCurrentDir() const {
+        return m_currentDirPath;
+    }
+    /**
+     * Returns smallest available inode id, if any is available, otherwise returns {@code FREE_INODE_ID}.
+     *
+     * @return smallest available inode id, or {@code FREE_INODE_ID}
+     */
+    int32_t getInodeId() const;
 
     /**
      * Returns the name of the data-file which is used as the file system storage.

@@ -3,6 +3,7 @@
 //
 
 #include <vector>
+#include <fstream>
 
 #include "../common/structures.h"
 #include "../../utils/InputParamsValidator.h"
@@ -35,7 +36,7 @@ void fnct::format(const std::vector <std::string>& parameters, FileSystem* fileS
 
 void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSystem) {
     if (fileSystem == nullptr || !fileSystem->isInitialized()) {
-        std::cout << "FIle system is not initialized!\n";
+        std::cout << "File system is not initialized!\n";
         return;
     }
 
@@ -44,8 +45,22 @@ void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSyst
         return;
     }
 
-    //TODO markovd read file from hard-disk into memory and write it into the data file - create inodes, data etc.
+    const auto hddPath = parameters.at(0);
 
+    std::ifstream hddFile(hddPath, std::ios_base::binary);
+    if (!hddFile) {
+        std::cout << fnct::FNF_SOURCE << '\n';
+        return;
+    }
+    const auto fileSize = std::filesystem::file_size(hddPath);
+    char fileBuffer[fileSize];
+    hddFile.read((char*)fileBuffer, fileSize);
+    //TODO markovd read file from hard-disk into memory and write it into the data file - create inodes, data etc.)
+    fileSystem->createFile(parameters.at(1), fileBuffer);
     std::cout << fnct::OK << '\n';
 
+}
+
+void fnct::pwd(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    std::cout << fileSystem->getCurrentDir() << '\n';
 }

@@ -31,7 +31,7 @@ private:
      */
     static constexpr int INCP_FUNCTION_PARAMS_COUNT = 2;
 
-public:
+public://public methods
 
     /**
      * Return code for invalid number of arguments being passed from CLI.
@@ -58,10 +58,10 @@ public:
     }
 
     /**
-     * Validates input parameters for the format function - the disk size. The parameter comes from the CLI, therefore
+     * Validates input parameters for the "format" function - the disk size. The parameter comes from the CLI, therefore
      * it is a std::string type. The input string has to be a numeric value.
      *
-     * @param diskSizeStr string value of the disk size to format
+     * @param parameters string value of the disk size to format
      * @return true if and only if the string value of disk size is numeric value
      */
     static bool validateFormatFunctionPatameters(const std::vector<std::string>& parameters) {
@@ -77,9 +77,12 @@ public:
     }
 
     /**
+     * Validates the input parameters for the "incp" function. The function expects at least two parameters - path to file on a hard drive
+     * and a path in the virtual file system. Path on the real hard drive has to exist. Path on the virtual file system cannot be validated here, because
+     * this class has no access to the virtual file system structure and has to be validated inside the "incp" function itself.
      *
-     * @param parameters
-     * @return
+     * @param parameters two parameters - path to file on a hard drive and a path in the virtual file system
+     * @return true, if the parameters are valid, otherwise false
      */
     static bool validateIncpFunctionParameters(const std::vector<std::string>& parameters) {
         if (parameters.size() < INCP_FUNCTION_PARAMS_COUNT) {
@@ -93,7 +96,7 @@ public:
         return true;
     }
 
-private:
+private: //private methods
 
     /**
      * Checks if passed string represents a number. Iterates through every character and when non-digit character is found,

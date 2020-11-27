@@ -41,6 +41,7 @@ namespace fs {
         std::array<int32_t, DIRECT_LINKS_COUNT> m_directLinks; // direct links to data blocks
         std::array<int32_t, INDIRECT_LINKS_COUNT> m_indirectLinks;   // indirect links to data blocks
     public: //public methods
+        Inode() = default;
         Inode(int32_t nodeId, bool isDirectory, int32_t fileSize);
 
         [[nodiscard]] int32_t getNodeId() const;
