@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <filesystem>
+#include <vector>
 #include "FileSystem.h"
 
 bool FileSystem::initialize(fs::Superblock &sb) {
@@ -49,9 +50,7 @@ bool FileSystem::initialize(fs::Superblock &sb) {
      * -..
      *
      */
-
-    fs::DirectoryItem root("/", 0);
-    dataFile.write((char*)&root, sizeof(fs::DirectoryItem));
+    dataFile.seekp(m_superblock.getDataStartAddress(), std::ios_base::beg);
     fs::DirectoryItem rootSelf(".", 0);
     dataFile.write((char*)&rootSelf, sizeof(fs::DirectoryItem));
     fs::DirectoryItem rootParent("..", 0);
@@ -147,8 +146,7 @@ bool FileSystem::initializeDataBitmap(std::ofstream& dataFile) {
     }
 
     m_dataBitmap = std::move(fs::Bitmap(m_superblock.getInodeStartAddress() - m_superblock.getDataBitmapStartAddress()));
-    //TODO markovd initialization of data blocks for root only
-    m_dataBitmap.getBitmap()[0] = 0b11100000;
+    m_dataBitmap.getBitmap()[0] = 0b10000000;
     return writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
 }
 
@@ -191,11 +189,81 @@ bool FileSystem::readBitmap(std::ifstream &dataFile, fs::Bitmap &bitmap, int off
 }
 
 void FileSystem::createFile(const std::string &path, const std::string &data) {
-
+    /// We store current working directory, so we can return back in the end
     std::string currentDir = m_currentDirPath;
 
     //TODO create cd function
-    //changeDirectory(path);
+    changeDirectory(path);
+
+    //create file
+
+    /// Returning back to the original directory
+    changeDirectory(currentDir);
+}
+
+void FileSystem::changeDirectory(const std::string& path) {
+    if (path.empty()) {
+        /// If no path is provided, we don't change anything and return.
+        return;
+    }
+
+    bool isAbsolute = path.rfind('/', 0) == 0;
+    std::string pathToSubstr = path;
+    std::vector<std::string> tokens;
+    std::size_t pos;
+    /// We need to find all the directories' names to go through
+    while ((pos = pathToSubstr.find('/')) != std::string::npos) {
+        tokens.push_back(pathToSubstr.substr(0, pos));
+        pathToSubstr.erase(0, pos + 1);
+    }
+
+    /// First we need to know from which directory we will move
+    fs::Inode referenceFolder;
+    if (isAbsolute) {
+        getRootInode(referenceFolder);
+    } else {
+        referenceFolder = m_currentDirInode;
+    }
+
+    /// Now we can iterate through every passed file name
+    for (const auto &name : tokens) {
+        if (name.empty()) {
+            continue;
+        }
 
 
+
+    }
+}
+
+void FileSystem::getRootInode(fs::Inode &rootInode) {
+    std::ifstream dataFile(m_dataFileName);
+    if (!dataFile) {
+        return;
+    }
+
+    fs::Inode tmp = rootInode;
+    dataFile.seekg(m_superblock.getInodeStartAddress(), std::ios_base::beg);
+    dataFile.read((char*)&rootInode, sizeof(fs::Inode));
+    if (dataFile.bad()) {
+        rootInode = tmp;
+    }
+}
+
+std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const fs::Inode& directory) {
+    std::vector<fs::DirectoryItem> directoryItems;
+    if (!directory.isDirectory()) {
+        return directoryItems;
+    }
+
+    std::ifstream dataFile(m_dataFileName);
+    if (!dataFile) {
+        return directoryItems;
+    }
+
+    for (const auto& directLink : directory.getDirectLinks()) {
+        //TODO markovda find all the directory items in direct links
+    }
+
+    //TODO markovda find all the directory items in indirect links
 }

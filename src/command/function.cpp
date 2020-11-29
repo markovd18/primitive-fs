@@ -6,8 +6,8 @@
 #include <fstream>
 
 #include "../common/structures.h"
-#include "../../utils/InputParamsValidator.h"
-#include "../../utils/StringNumberConverter.h"
+#include "../utils/InputParamsValidator.h"
+#include "../utils/StringNumberConverter.h"
 #include "../fs/FileSystem.h"
 #include "returnval.h"
 #include "function.h"
@@ -56,8 +56,12 @@ void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSyst
     char fileBuffer[fileSize];
     hddFile.read((char*)fileBuffer, fileSize);
     //TODO markovd read file from hard-disk into memory and write it into the data file - create inodes, data etc.)
-    fileSystem->createFile(parameters.at(1), fileBuffer);
-    std::cout << fnct::OK << '\n';
+    try {
+        fileSystem->createFile(parameters.at(1), fileBuffer);
+        std::cout << fnct::OK << '\n';
+    } catch (const std::exception& ex) {
+        std::cout << fnct::PNF_DEST << '\n';
+    }
 
 }
 

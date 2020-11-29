@@ -139,6 +139,14 @@ public: //public methods
         m_inodeBitmap = inodeBitmap;
     }
 
+    /**
+     * Changes current working directory to the directory give in path. If path doesn't exist or there is a file at the end of the path,
+     * throws an exception.
+     *
+     * @param path path to change current working directory into
+     */
+    void changeDirectory(const std::string& path);
+
 private: //private methods
     /**
      * Writes superblock at the start of the file-system. Requires open input stream to data file passed. If
@@ -205,6 +213,21 @@ private: //private methods
      * @return true when successfully read bitmap, otherwise false
      */
     bool readBitmap(std::ifstream& dataFile, fs::Bitmap& bitmap, int offset);
+
+    /**
+     * Finds the i-node of root directory and stores it into the inode passed as a parameter.
+     *
+     * @param rootInode instance to store rootInode data into
+     */
+    void getRootInode(fs::Inode& rootInode);
+
+    /**
+     * Returns all directory items of directory, represented by given inode. If inode doesn't represent folder, returns empty vector.
+     *
+     * @param directory inode representing the directory
+     * @return vector of directory items, if inode is directory, otherwise nothing
+     */
+    std::vector<fs::DirectoryItem> getDirectoryItems(const fs::Inode& directory);
 };
 
 

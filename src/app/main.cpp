@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include "../utils/InputParamsValidator.h"
-#include "app/PrimitiveFsApp.h"
+#include "PrimitiveFsApp.h"
 
 int main(int argc, char** argv) {
 

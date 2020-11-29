@@ -10,24 +10,19 @@ set(CMAKE_CXX_STANDARD 17)
 
 #setting variable for src directory
 set(SRC ${PROJECT_SOURCE_DIR}/src)
-#setting main src directory
-set(MAIN_SRC ${SRC}/main)
-
-#finding all source files in src/main directory
-file(GLOB COMMON ${MAIN_SRC}/common/*.h ${MAIN_SRC}/common/*.cpp)
-file(GLOB APP ${MAIN_SRC}/app/*.h ${MAIN_SRC}/app/*.cpp)
-file(GLOB FS ${MAIN_SRC}/fs/*.h ${FS}/fs/*.cpp)
-file(GLOB COMMAND ${MAIN_SRC}/command/*.h ${MAIN_SRC}/command/*.cpp)
 
 #finding all source files in src directory
-file(GLOB MAIN ${COMMON} ${APP} ${FS} ${COMMAND} ${MAIN_SRC}/main.cpp)
+file(GLOB COMMON ${SRC}/common/*.h ${SRC}/common/*.cpp)
+file(GLOB APP ${SRC}/app/*.h ${SRC}/app/*.cpp)
+file(GLOB FS ${SRC}/fs/*.h ${SRC}/fs/*.cpp)
+file(GLOB COMMAND ${SRC}/command/*.h ${SRC}/command/*.cpp)
 file(GLOB UTILS ${SRC}/utils/*.h ${SRC}/utils/*.cpp)
 
 #creating one file with all sources for convenience
-file(GLOB SOURCES ${MAIN} ${UTILS})
+file(GLOB SOURCES ${APP} ${COMMAND} ${COMMON} ${FS} ${UTILS})
 #adding libraries
-add_library(FUNCTIONS STATIC ${MAIN_SRC}/command/function.cpp)
-add_library(FILE_SYSTEM ${MAIN_SRC}/fs/FileSystem.cpp)
+add_library(FUNCTIONS STATIC ${SRC}/command/function.cpp)
+add_library(FILE_SYSTEM STATIC ${SRC}/fs/FileSystem.cpp)
 #creating executable
 add_executable(primitive_fs ${SOURCES})
 
