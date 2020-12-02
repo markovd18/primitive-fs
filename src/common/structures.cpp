@@ -94,6 +94,23 @@ namespace fs {
         return m_itemName;
     }
 
+    bool DirectoryItem::nameEquals(const std::string &name) const {
+        if (name.length() != getItemNameLength()) {
+            return false;
+        }
+
+        return name == m_itemName.data();
+    }
+
+    int DirectoryItem::getItemNameLength() const {
+        for (int i = 0; i < DIR_ITEM_NAME_LENGTH; ++i) {
+            if (m_itemName.at(i) == '\0') {
+                return i;
+            }
+        }
+        return DIR_ITEM_NAME_LENGTH;
+    }
+
 
     Inode::Inode(int32_t nodeId, bool isDirectory, int32_t fileSize) : m_nodeId(nodeId), m_isDirectory(isDirectory),
                                                                        m_fileSize(fileSize), m_references(1), m_directLinks(), m_indirectLinks() {

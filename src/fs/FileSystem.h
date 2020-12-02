@@ -9,6 +9,7 @@
 #include <memory>
 #include <iostream>
 #include <filesystem>
+#include <vector>
 
 #include "../common/structures.h"
 

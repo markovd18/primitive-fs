@@ -32,7 +32,7 @@ CommandType PrimitiveFsApp::manageUserInput() {
     /**
      * We get the command user wants to run.
      */
-    Command command = app::getUserInput(std::cin);
+    Command command = pfs::getUserInput(std::cin);
     if (command.getName() == Command::exitCommand) {
         return CommandType::EXIT;
     }
@@ -75,7 +75,7 @@ void PrimitiveFsApp::runCommand(const Command &command) {
         /**
          * Parent process waits for child process to finish.
          */
-        app::waitForChildProcess();
+        pfs::waitForChildProcess();
     }
 }
 
@@ -88,7 +88,7 @@ int PrimitiveFsApp::executeFunction(const Function &function, const std::vector<
     }
 }
 
-namespace app {
+namespace pfs {
 
     Command getUserInput(std::istream& inputStream) {
         std::string input;
@@ -98,7 +98,7 @@ namespace app {
             return Command();
         }
 
-        return app::parseUserInput(input);
+        return pfs::parseUserInput(input);
     }
 
     Command parseUserInput(std::string &input) {

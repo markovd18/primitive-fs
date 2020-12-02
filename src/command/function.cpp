@@ -11,6 +11,7 @@
 #include "../fs/FileSystem.h"
 #include "returnval.h"
 #include "function.h"
+#include "../utils/FileNotFoundException.h"
 
 void fnct::format(const std::vector <std::string>& parameters, FileSystem* fileSystem) {
     if (fileSystem == nullptr) {
@@ -59,7 +60,7 @@ void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSyst
     try {
         fileSystem->createFile(parameters.at(1), fileBuffer);
         std::cout << fnct::OK << '\n';
-    } catch (const std::exception& ex) {
+    } catch (const pfs::FileNotFoundException& ex) {
         std::cout << fnct::PNF_DEST << '\n';
     }
 

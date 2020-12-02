@@ -140,6 +140,19 @@ namespace fs {
          * @param inodeId id of corresponding inode
          */
         explicit DirectoryItem(const std::string& itemName, int32_t inodeId);
+        /**
+         * Returns the length of this directory item name.
+         *
+         * @return directory item name
+         */
+        [[nodiscard]] int getItemNameLength() const;
+        /**
+         * Returns true, if name of this directory item equals to passed string, otherwise false.
+         *
+         * @param name checked name to be equal to
+         * @return true, if equal, otherwise false
+         */
+        [[nodiscard]] bool nameEquals(const std::string& name) const;
         /** Getter for inode ID. */
         [[nodiscard]] int32_t getInodeId() const;
         /** Getter for item name. */

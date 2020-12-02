@@ -80,7 +80,7 @@ private: //private methods
 /**
  * Namespace for generic helper functions for managing the runtime of this application.
  */
-namespace app {
+namespace pfs {
     /**
      * Waits for and parses user input from CLI and returns it as an appropriate class.
      *

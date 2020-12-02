@@ -5,7 +5,10 @@
 #include <fstream>
 #include <filesystem>
 #include <vector>
+#include <algorithm>
 #include "FileSystem.h"
+#include "../utils/FileNotFoundException.h"
+#include "../utils/InvalidArgumentException.h"
 
 bool FileSystem::initialize(fs::Superblock &sb) {
 
@@ -190,7 +193,8 @@ bool FileSystem::readBitmap(std::ifstream &dataFile, fs::Bitmap &bitmap, int off
 
 void FileSystem::createFile(const std::string &path, const std::string &data) {
     /// We store current working directory, so we can return back in the end
-    std::string currentDir = m_currentDirPath;
+    const std::string currentDir = m_currentDirPath;
+    const fs::Inode currentInode = m_currentDirInode;
 
     //TODO create cd function
     changeDirectory(path);
@@ -198,7 +202,8 @@ void FileSystem::createFile(const std::string &path, const std::string &data) {
     //create file
 
     /// Returning back to the original directory
-    changeDirectory(currentDir);
+    m_currentDirInode = currentInode;
+    m_currentDirPath = currentDir;
 }
 
 void FileSystem::changeDirectory(const std::string& path) {
@@ -225,15 +230,32 @@ void FileSystem::changeDirectory(const std::string& path) {
         referenceFolder = m_currentDirInode;
     }
 
+
+    std::vector<fs::DirectoryItem> directoryItems;
     /// Now we can iterate through every passed file name
     for (const auto &name : tokens) {
         if (name.empty()) {
             continue;
         }
 
+        directoryItems = getDirectoryItems(referenceFolder);
+        auto it = std::find_if(directoryItems.begin(), directoryItems.end(), [&name](const fs::DirectoryItem item) { return item.nameEquals(name); });
+        if (it == directoryItems.end()) {
+            throw pfs::FileNotFoundException("Předaná cesta neexistuje");
+        }
 
+        //fs::Inode dirItemInode = findInode(it.base()->getInodeId());
+        fs::Inode dirItemInode;
+        if (!dirItemInode.isDirectory()) {
+            throw pfs::InvalidArgumentException("Soubor v předané cestě není adresář");
+        }
 
+        referenceFolder = dirItemInode;
     }
+
+    /// Setting found path as current path
+    m_currentDirInode = referenceFolder;
+    m_currentDirPath = path;
 }
 
 void FileSystem::getRootInode(fs::Inode &rootInode) {
@@ -266,4 +288,5 @@ std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const fs::Inode& di
     }
 
     //TODO markovda find all the directory items in indirect links
+    return directoryItems;
 }
