@@ -34,19 +34,24 @@ namespace fs {
         static constexpr size_t DIRECT_LINKS_COUNT = 5;     //number of allowed direct links to data blocks
         static constexpr size_t INDIRECT_LINKS_COUNT = 2;   // number of allowed indirect links to data blocks
     private: //private attributes
-        int32_t m_nodeId;                     //i-node id - if nodeId = FREE_INODE_ID, then the inode is free
-        bool m_isDirectory;                   //file or directory
-        int8_t m_references;                  //number of references on i-node - used for hardlinks
-        int32_t m_fileSize;                   //size of file in bytes
-        std::array<int32_t, DIRECT_LINKS_COUNT> m_directLinks; // direct links to data blocks
-        std::array<int32_t, INDIRECT_LINKS_COUNT> m_indirectLinks;   // indirect links to data blocks
+        int32_t m_inodeId = fs::FREE_INODE_ID;                     //i-node id - if nodeId = FREE_INODE_ID, then the inode is free
+        bool m_isDirectory = false;                   //file or directory
+        int8_t m_references = 1;                  //number of references on i-node - used for hardlinks
+        int32_t m_fileSize = 0;                   //size of file in bytes
+        std::array<int32_t, DIRECT_LINKS_COUNT> m_directLinks{}; // direct links to data blocks
+        std::array<int32_t, INDIRECT_LINKS_COUNT> m_indirectLinks{};   // indirect links to data blocks
     public: //public methods
-        Inode() = default;
+        Inode();
         Inode(int32_t nodeId, bool isDirectory, int32_t fileSize);
+        Inode(Inode& inode) = default;
+        Inode(Inode&& inode) = default;
+        ~Inode() = default;
+        Inode& operator=(const Inode& inode) = default;
+        Inode& operator=(Inode&& inode) = default;
 
-        [[nodiscard]] int32_t getNodeId() const;
+        [[nodiscard]] int32_t getInodeId() const;
 
-        void setNodeId(int32_t nodeId);
+        void setInodeId(int32_t nodeId);
 
         [[nodiscard]] bool isDirectory() const;
 
@@ -130,9 +135,14 @@ namespace fs {
     public: //public attributes
         static constexpr size_t DIR_ITEM_NAME_LENGTH = 12; //length of directory item name (8 chars + 3 chars for extension + \0)
     private: //private attributes
-        int32_t m_inodeId;                    //id of corresponding i-node
-        std::array<char, DIR_ITEM_NAME_LENGTH> m_itemName;   //name of directory item
+        int32_t m_inodeId = FREE_INODE_ID;                    //id of corresponding i-node
+        std::array<char, DIR_ITEM_NAME_LENGTH> m_itemName{};   //name of directory item
     public: //public methods
+        /**
+         * Default constructor for initialization of directory item into non-viable state.
+         */
+        DirectoryItem() = default;
+
         /**
          * Default constructor for initialization of directory item.
          *
@@ -178,7 +188,11 @@ namespace fs {
                 memset(m_bitmap, 0, length);
             }
         }
-
+        /**
+         * Copy constructor.
+         *
+         * @param otherBitmap copied instance
+         */
         Bitmap(const fs::Bitmap &otherBitmap)
                     : m_length(otherBitmap.m_length), m_bitmap(otherBitmap.m_length ? new u_char[otherBitmap.m_length] : nullptr){
             if (m_length) {
@@ -210,6 +224,12 @@ namespace fs {
             swap(*this, otherBitmap);
         }
 
+        /**
+         * Assignment operator.
+         *
+         * @param otherBitmap instance to assign
+         * @return this instance
+         */
         Bitmap &operator=(fs::Bitmap otherBitmap){
             swap(*this, otherBitmap);
 

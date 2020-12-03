@@ -32,8 +32,15 @@ namespace fnct {
      * Prints current working directory. Doesn't require any parameters.
      *
      * @param parameters no parameters required, any given parameter will be ignored
-     * @param fileSystem file system of which current working directory we want to print
+     * @param fileSystem file system which current working directory we want to print of
      */
     void pwd(const std::vector<std::string>& parameters, FileSystem* fileSystem);
+    /**
+     * Changes current working directory to given directory.
+     *
+     * @param parameters requires one parameter - existing directory in virtual file system
+     * @param fileSystem file system which we want to change the working directory of
+     */
+    void cd(const std::vector<std::string>& parameters, FileSystem* fileSystem);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H

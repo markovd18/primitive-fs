@@ -7,8 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include "FileSystem.h"
-#include "../utils/FileNotFoundException.h"
-#include "../utils/InvalidArgumentException.h"
+#include "../utils/ObjectNotFound.h"
 
 bool FileSystem::initialize(fs::Superblock &sb) {
 
@@ -64,6 +63,8 @@ bool FileSystem::initialize(fs::Superblock &sb) {
     }
 
     /// In the end we are successfully initialized
+    m_currentDirPath = "/";
+    m_currentDirInode = rootInode;
     m_initialized = true;
     return true;
 }
@@ -128,8 +129,8 @@ bool FileSystem::initializeInodeBitmap(std::ofstream& dataFile) {
     if (!dataFile.is_open()) {
         return false;
     }
+
     m_inodeBitmap = std::move(fs::Bitmap(m_superblock.getInodeCount()));
-    /// We are initializing new file system, so there will be only one inode - for the root directory
     m_inodeBitmap.getBitmap()[0] = 0b10000000;
     return writeBitmap(dataFile, m_inodeBitmap, m_superblock.getInodeBitmapStartAddress());
 }
@@ -221,6 +222,7 @@ void FileSystem::changeDirectory(const std::string& path) {
         tokens.push_back(pathToSubstr.substr(0, pos));
         pathToSubstr.erase(0, pos + 1);
     }
+    tokens.push_back(pathToSubstr); /// Adding the last token
 
     /// First we need to know from which directory we will move
     fs::Inode referenceFolder;
@@ -241,13 +243,12 @@ void FileSystem::changeDirectory(const std::string& path) {
         directoryItems = getDirectoryItems(referenceFolder);
         auto it = std::find_if(directoryItems.begin(), directoryItems.end(), [&name](const fs::DirectoryItem item) { return item.nameEquals(name); });
         if (it == directoryItems.end()) {
-            throw pfs::FileNotFoundException("Předaná cesta neexistuje");
+            throw std::ios_base::failure("Předaná cesta neexistuje");
         }
 
-        //fs::Inode dirItemInode = findInode(it.base()->getInodeId());
-        fs::Inode dirItemInode;
+        fs::Inode dirItemInode = findInode(it.base()->getInodeId());
         if (!dirItemInode.isDirectory()) {
-            throw pfs::InvalidArgumentException("Soubor v předané cestě není adresář");
+            throw std::invalid_argument("Soubor v předané cestě není adresář");
         }
 
         referenceFolder = dirItemInode;
@@ -255,6 +256,7 @@ void FileSystem::changeDirectory(const std::string& path) {
 
     /// Setting found path as current path
     m_currentDirInode = referenceFolder;
+    //TODO markovda probably delete? saves for example ../, we want an absolute path
     m_currentDirPath = path;
 }
 
@@ -273,20 +275,61 @@ void FileSystem::getRootInode(fs::Inode &rootInode) {
 }
 
 std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const fs::Inode& directory) {
-    std::vector<fs::DirectoryItem> directoryItems;
     if (!directory.isDirectory()) {
-        return directoryItems;
+        throw std::invalid_argument("Předaný inode nereprezentuje adresář");
     }
 
     std::ifstream dataFile(m_dataFileName);
     if (!dataFile) {
-        return directoryItems;
+        throw std::ios_base::failure("Chyba při čtení ze souboru");
     }
 
+    std::vector<fs::DirectoryItem> directoryItems;
     for (const auto& directLink : directory.getDirectLinks()) {
+        if (directLink != fs::EMPTY_LINK) {
+            for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(fs::DirectoryItem)) {
+                dataFile.seekg(m_superblock.getDataStartAddress() + i,
+                               std::ios_base::beg);
+
+                fs::DirectoryItem dirItem;
+                dataFile.read((char *) &dirItem, sizeof(fs::DirectoryItem));
+                if (dirItem.getItemName().at(0) != 0) {
+                    /// Ending character at the beginning of the file name would mean, that we read "empty" memory
+                    directoryItems.push_back(dirItem);
+                }
+            }
+        }
         //TODO markovda find all the directory items in direct links
+
     }
 
     //TODO markovda find all the directory items in indirect links
     return directoryItems;
+}
+
+fs::Inode FileSystem::findInode(const int inodeId) {
+    std::ifstream dataFile(m_dataFileName);
+    if (!dataFile) {
+        throw std::ios_base::failure("Chyba při čtení ze souboru");
+    }
+
+    fs::Inode inode;
+    for (int i = 0; i < m_inodeBitmap.getLength(); ++i) {
+        for (int j = 7; j >= 0; --j) {
+            /// If the bit is 1, there is inode on this index
+            if ((m_inodeBitmap.getBitmap()[i] >> j) & 0b1) {
+                /// We need to count the length of the step
+                dataFile.seekg(m_superblock.getInodeStartAddress() + (i * (7 - j) * sizeof(fs::Inode)),
+                               std::ios_base::beg);
+
+                dataFile.read((char*) &inode, sizeof(fs::Inode));
+                if (inode.getInodeId() == inodeId) {
+                    return inode;
+                }
+            }
+        }
+    }
+
+    /// If we got here, the inode was not found
+    throw pfs::ObjectNotFound("I-uzel nenalezen");
 }

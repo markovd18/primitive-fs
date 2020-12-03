@@ -112,33 +112,7 @@ public: //public methods
      *
      * @return smallest available inode id, or {@code FREE_INODE_ID}
      */
-    int32_t getInodeId() const;
-
-    /**
-     * Returns the name of the data-file which is used as the file system storage.
-     *
-     * @return data-file name
-     */
-    const std::string &getDataFileName() const {
-        return m_dataFileName;
-    }
-    /**
-     * Sets new superblock reference.
-     *
-     * @param sb new superblock reference
-     */
-    void setSuperblock(fs::Superblock& sb) {
-        m_superblock = sb;
-    }
-
-    /**
-     * Sets new inode bitmap reference.
-     *
-     * @param inodeBitmap
-     */
-    void setInodeBitmap(fs::Bitmap& inodeBitmap) {
-        m_inodeBitmap = inodeBitmap;
-    }
+    [[nodiscard]] int32_t getInodeId() const;
 
     /**
      * Changes current working directory to the directory give in path. If path doesn't exist or there is a file at the end of the path,
@@ -147,6 +121,14 @@ public: //public methods
      * @param path path to change current working directory into
      */
     void changeDirectory(const std::string& path);
+
+    /**
+     * Returns the inode with given id. If inode with given doesn't exist, throws an exception.
+     *
+     * @param inodeId id of wanted inode
+     * @return inode with given id
+     */
+    fs::Inode findInode(int inodeId);
 
 private: //private methods
     /**

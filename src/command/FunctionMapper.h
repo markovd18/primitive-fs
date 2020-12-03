@@ -25,7 +25,8 @@ private: //private attributes
     inline static const std::map<const std::string, Function> nameToFunctionMap = {
             {"format", &fnct::format },
             {"incp", &fnct::incp},
-            {"pwd", &fnct::pwd}
+            {"pwd", &fnct::pwd},
+            {"cd", &fnct::cd}
     };
 public: //public methods
 

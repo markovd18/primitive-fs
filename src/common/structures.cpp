@@ -112,18 +112,22 @@ namespace fs {
     }
 
 
-    Inode::Inode(int32_t nodeId, bool isDirectory, int32_t fileSize) : m_nodeId(nodeId), m_isDirectory(isDirectory),
-                                                                       m_fileSize(fileSize), m_references(1), m_directLinks(), m_indirectLinks() {
+    Inode::Inode() {
+        m_directLinks.fill(EMPTY_LINK);
+        m_directLinks.fill(EMPTY_LINK);
+    }
+    Inode::Inode(int32_t nodeId, bool isDirectory, int32_t fileSize) : m_inodeId(nodeId), m_isDirectory(isDirectory),
+                                                                       m_fileSize(fileSize){
         m_directLinks.fill(EMPTY_LINK);
         m_indirectLinks.fill(EMPTY_LINK);
     }
 
-    int32_t Inode::getNodeId() const {
-        return m_nodeId;
+    int32_t Inode::getInodeId() const {
+        return m_inodeId;
     }
 
-    void Inode::setNodeId(int32_t nodeId) {
-        m_nodeId = nodeId;
+    void Inode::setInodeId(int32_t nodeId) {
+        m_inodeId = nodeId;
     }
 
     bool Inode::isDirectory() const {

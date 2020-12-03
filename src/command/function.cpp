@@ -11,7 +11,6 @@
 #include "../fs/FileSystem.h"
 #include "returnval.h"
 #include "function.h"
-#include "../utils/FileNotFoundException.h"
 
 void fnct::format(const std::vector <std::string>& parameters, FileSystem* fileSystem) {
     if (fileSystem == nullptr) {
@@ -56,11 +55,11 @@ void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSyst
     const auto fileSize = std::filesystem::file_size(hddPath);
     char fileBuffer[fileSize];
     hddFile.read((char*)fileBuffer, fileSize);
-    //TODO markovd read file from hard-disk into memory and write it into the data file - create inodes, data etc.)
+
     try {
         fileSystem->createFile(parameters.at(1), fileBuffer);
         std::cout << fnct::OK << '\n';
-    } catch (const pfs::FileNotFoundException& ex) {
+    } catch (const std::exception& ex) {
         std::cout << fnct::PNF_DEST << '\n';
     }
 
@@ -68,4 +67,18 @@ void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSyst
 
 void fnct::pwd(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
     std::cout << fileSystem->getCurrentDir() << '\n';
+}
+
+void fnct::cd(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    ///Here we don't validate anythibg. If no parameter is passed, we cd to root directory, otherwise we try to cd into given directory
+    try {
+        if (parameters.empty() || parameters.at(0).empty()) {
+            fileSystem->changeDirectory("/");
+        } else {
+            fileSystem->changeDirectory(parameters.at(0));
+        }
+        std::cout << fnct::OK << '\n';
+    } catch (const std::exception& ex) {
+        std::cout << fnct::PNF_DEST << '\n';
+    }
 }
