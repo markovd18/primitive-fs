@@ -45,9 +45,9 @@ namespace fs {
         Inode(int32_t nodeId, bool isDirectory, int32_t fileSize);
         Inode(Inode& inode) = default;
         Inode(Inode&& inode) = default;
-        ~Inode() = default;
         Inode& operator=(const Inode& inode) = default;
         Inode& operator=(Inode&& inode) = default;
+        ~Inode() = default;
 
         [[nodiscard]] int32_t getInodeId() const;
 
@@ -106,6 +106,11 @@ namespace fs {
          */
         explicit Superblock(size_t newDiskSize);
         Superblock() = default;
+        Superblock(const Superblock& other) = default;
+        Superblock(Superblock&& other) = default;
+        Superblock& operator=(const Superblock& other) = default;
+        Superblock& operator=(Superblock&& other) = default;
+        ~Superblock() = default;
         /** Getter for author's signature. */
         [[nodiscard]] const std::array<char, SIGNATURE_LENGTH> &getSignature() const;
         /** Getter for volume description. */
@@ -150,6 +155,11 @@ namespace fs {
          * @param inodeId id of corresponding inode
          */
         explicit DirectoryItem(const std::string& itemName, int32_t inodeId);
+        DirectoryItem(const DirectoryItem& other) = default;
+        DirectoryItem(DirectoryItem&& other) = default;
+        DirectoryItem& operator=(const DirectoryItem& other) = default;
+        DirectoryItem& operator=(DirectoryItem&& other) = default;
+        ~DirectoryItem() = default;
         /**
          * Returns the length of this directory item name.
          *

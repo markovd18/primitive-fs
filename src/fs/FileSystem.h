@@ -31,7 +31,7 @@ private: //private attributes
     /**
      * Superblock with fundamental information about the file system.
      */
-    fs::Superblock m_superblock;
+    fs::Superblock m_superblock{};
     /**
      * Bitmap of used and unused memory addresses for i-nodes.
      */
@@ -130,6 +130,14 @@ public: //public methods
      */
     fs::Inode findInode(int inodeId);
 
+    /**
+     * Returns all directory items of directory, represented by given inode. If inode doesn't represent folder, returns empty vector.
+     *
+     * @param directory inode representing the directory
+     * @return vector of directory items, if inode is directory, otherwise nothing
+     */
+    std::vector<fs::DirectoryItem> getDirectoryItems(const fs::Inode& directory);
+
 private: //private methods
     /**
      * Writes superblock at the start of the file-system. Requires open input stream to data file passed. If
@@ -205,12 +213,37 @@ private: //private methods
     void getRootInode(fs::Inode& rootInode);
 
     /**
-     * Returns all directory items of directory, represented by given inode. If inode doesn't represent folder, returns empty vector.
+     * Saves given inode into data file.
      *
-     * @param directory inode representing the directory
-     * @return vector of directory items, if inode is directory, otherwise nothing
+     * @param inode inode to save
      */
-    std::vector<fs::DirectoryItem> getDirectoryItems(const fs::Inode& directory);
+    void saveInode(const fs::Inode& inode);
+
+    /**
+     * Reads all directory items of passed directory i-node from it's direct links and stores them into passed vector of directory items.
+     * If passed argument is not a directory, throws.
+     *
+     * @param directory directory which we want to read
+     * @param directoryItems vector to store directory items into
+     */
+    void readDirItemsDirect(const fs::Inode& directory, std::vector<fs::DirectoryItem>& directoryItems);
+
+    /**
+     * Reads all directory items of passed directory i-node from it's indirect links and stores them into passed vector of directory items.
+     * If passed argument is not a directory, throws.
+     *
+     * @param directory directory which we want to read
+     * @param directoryItems vector to store directory items into
+     */
+    void readDirItemsIndirect(const fs::Inode& directory, std::vector<fs::DirectoryItem>& directoryItems);
+
+    /**
+     * Reads all directory items on passed data indexes and stores them into passed vector of directory items.
+     *
+     * @param indexList vector of directory item data indexes
+     * @param directoryItems vector to store directory items into
+     */
+    void readDirItems(const std::vector<int32_t>& indexList, std::vector<fs::DirectoryItem>& directoryItems);
 };
 
 

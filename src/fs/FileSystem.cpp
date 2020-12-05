@@ -275,36 +275,81 @@ void FileSystem::getRootInode(fs::Inode &rootInode) {
 }
 
 std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const fs::Inode& directory) {
+
+    std::vector<fs::DirectoryItem> directoryItems;
+    readDirItemsDirect(directory, directoryItems);
+    readDirItemsIndirect(directory, directoryItems);
+
+    return directoryItems;
+}
+
+
+void FileSystem::readDirItemsDirect(const fs::Inode &directory, std::vector<fs::DirectoryItem> &directoryItems) {
+    if (!directory.isDirectory()) {
+        throw std::invalid_argument("Předaný inode nereprezentuje adresář");
+    }
+
+    std::vector<int32_t> links;
+    for (const auto &link : directory.getDirectLinks()) {
+        links.push_back(link);
+    }
+
+    readDirItems(links, directoryItems);
+}
+
+void FileSystem::readDirItemsIndirect(const fs::Inode &directory, std::vector<fs::DirectoryItem> &directoryItems) {
     if (!directory.isDirectory()) {
         throw std::invalid_argument("Předaný inode nereprezentuje adresář");
     }
 
     std::ifstream dataFile(m_dataFileName);
     if (!dataFile) {
+        throw std::ios_base::failure("Chyba při čtení dat");
+    }
+
+    std::vector<int32_t> links;
+    for (const auto &indirectLink : directory.getIndirectLinks()) {
+        if (indirectLink == fs::EMPTY_LINK) {
+            continue;
+        }
+
+        for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(int32_t)) {
+            int32_t directLink;
+            dataFile.seekg(m_superblock.getDataStartAddress() + indirectLink, std::ios_base::beg);
+            dataFile.read((char*)&directLink, sizeof(int32_t));
+            if (directLink != fs::EMPTY_LINK) {
+                links.push_back(directLink);
+            }
+        }
+    }
+
+    dataFile.close();
+    if (!dataFile) {
+        throw std::ios_base::failure("Chyba při uzavření datového souboru");
+    }
+
+    readDirItems(links, directoryItems);
+}
+
+void FileSystem::readDirItems(const std::vector<int32_t> &indexList, std::vector<fs::DirectoryItem> &directoryItems) {
+    std::ifstream dataFile(m_dataFileName);
+    if (!dataFile) {
         throw std::ios_base::failure("Chyba při čtení ze souboru");
     }
 
-    std::vector<fs::DirectoryItem> directoryItems;
-    for (const auto& directLink : directory.getDirectLinks()) {
-        if (directLink != fs::EMPTY_LINK) {
-            for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(fs::DirectoryItem)) {
-                dataFile.seekg(m_superblock.getDataStartAddress() + i,
-                               std::ios_base::beg);
+    for (const auto& index : indexList) {
+        for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(fs::DirectoryItem)) {
+            dataFile.seekg(m_superblock.getDataStartAddress() + i,
+                           std::ios_base::beg);
 
-                fs::DirectoryItem dirItem;
-                dataFile.read((char *) &dirItem, sizeof(fs::DirectoryItem));
-                if (dirItem.getItemName().at(0) != 0) {
-                    /// Ending character at the beginning of the file name would mean, that we read "empty" memory
-                    directoryItems.push_back(dirItem);
-                }
+            fs::DirectoryItem dirItem;
+            dataFile.read((char *) &dirItem, sizeof(fs::DirectoryItem));
+            if (dirItem.getItemName().at(0) != 0) {
+                /// Ending character at the beginning of the file name would mean, that we read "empty" memory
+                directoryItems.push_back(dirItem);
             }
         }
-        //TODO markovda find all the directory items in direct links
-
     }
-
-    //TODO markovda find all the directory items in indirect links
-    return directoryItems;
 }
 
 fs::Inode FileSystem::findInode(const int inodeId) {
@@ -332,4 +377,13 @@ fs::Inode FileSystem::findInode(const int inodeId) {
 
     /// If we got here, the inode was not found
     throw pfs::ObjectNotFound("I-uzel nenalezen");
+}
+
+void FileSystem::saveInode(const fs::Inode &inode) {
+    std::ifstream dataFile(m_dataFileName);
+    if (!dataFile) {
+        throw std::ios_base::failure("Chyba při otevírání datového souboru");
+    }
+
+    //TODO markovda save inode into datafile
 }
