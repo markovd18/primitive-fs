@@ -123,6 +123,59 @@ primitive_fs/fast:
 	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/build
 .PHONY : primitive_fs/fast
 
+#=============================================================================
+# Target rules for targets named FILE_SYSTEM
+
+# Build rule for target.
+FILE_SYSTEM: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 FILE_SYSTEM
+.PHONY : FILE_SYSTEM
+
+# fast build rule for target.
+FILE_SYSTEM/fast:
+	$(MAKE) -f CMakeFiles/FILE_SYSTEM.dir/build.make CMakeFiles/FILE_SYSTEM.dir/build
+.PHONY : FILE_SYSTEM/fast
+
+#=============================================================================
+# Target rules for targets named FUNCTIONS
+
+# Build rule for target.
+FUNCTIONS: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 FUNCTIONS
+.PHONY : FUNCTIONS
+
+# fast build rule for target.
+FUNCTIONS/fast:
+	$(MAKE) -f CMakeFiles/FUNCTIONS.dir/build.make CMakeFiles/FUNCTIONS.dir/build
+.PHONY : FUNCTIONS/fast
+
+src/app/PrimitiveFsApp.o: src/app/PrimitiveFsApp.cpp.o
+
+.PHONY : src/app/PrimitiveFsApp.o
+
+# target to build an object file
+src/app/PrimitiveFsApp.cpp.o:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/app/PrimitiveFsApp.cpp.o
+.PHONY : src/app/PrimitiveFsApp.cpp.o
+
+src/app/PrimitiveFsApp.i: src/app/PrimitiveFsApp.cpp.i
+
+.PHONY : src/app/PrimitiveFsApp.i
+
+# target to preprocess a source file
+src/app/PrimitiveFsApp.cpp.i:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/app/PrimitiveFsApp.cpp.i
+.PHONY : src/app/PrimitiveFsApp.cpp.i
+
+src/app/PrimitiveFsApp.s: src/app/PrimitiveFsApp.cpp.s
+
+.PHONY : src/app/PrimitiveFsApp.s
+
+# target to generate assembly for a file
+src/app/PrimitiveFsApp.cpp.s:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/app/PrimitiveFsApp.cpp.s
+.PHONY : src/app/PrimitiveFsApp.cpp.s
+
 src/app/main.o: src/app/main.cpp.o
 
 .PHONY : src/app/main.o
@@ -150,6 +203,93 @@ src/app/main.cpp.s:
 	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/app/main.cpp.s
 .PHONY : src/app/main.cpp.s
 
+src/command/function.o: src/command/function.cpp.o
+
+.PHONY : src/command/function.o
+
+# target to build an object file
+src/command/function.cpp.o:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/command/function.cpp.o
+	$(MAKE) -f CMakeFiles/FUNCTIONS.dir/build.make CMakeFiles/FUNCTIONS.dir/src/command/function.cpp.o
+.PHONY : src/command/function.cpp.o
+
+src/command/function.i: src/command/function.cpp.i
+
+.PHONY : src/command/function.i
+
+# target to preprocess a source file
+src/command/function.cpp.i:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/command/function.cpp.i
+	$(MAKE) -f CMakeFiles/FUNCTIONS.dir/build.make CMakeFiles/FUNCTIONS.dir/src/command/function.cpp.i
+.PHONY : src/command/function.cpp.i
+
+src/command/function.s: src/command/function.cpp.s
+
+.PHONY : src/command/function.s
+
+# target to generate assembly for a file
+src/command/function.cpp.s:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/command/function.cpp.s
+	$(MAKE) -f CMakeFiles/FUNCTIONS.dir/build.make CMakeFiles/FUNCTIONS.dir/src/command/function.cpp.s
+.PHONY : src/command/function.cpp.s
+
+src/common/structures.o: src/common/structures.cpp.o
+
+.PHONY : src/common/structures.o
+
+# target to build an object file
+src/common/structures.cpp.o:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/common/structures.cpp.o
+.PHONY : src/common/structures.cpp.o
+
+src/common/structures.i: src/common/structures.cpp.i
+
+.PHONY : src/common/structures.i
+
+# target to preprocess a source file
+src/common/structures.cpp.i:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/common/structures.cpp.i
+.PHONY : src/common/structures.cpp.i
+
+src/common/structures.s: src/common/structures.cpp.s
+
+.PHONY : src/common/structures.s
+
+# target to generate assembly for a file
+src/common/structures.cpp.s:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/common/structures.cpp.s
+.PHONY : src/common/structures.cpp.s
+
+src/fs/FileSystem.o: src/fs/FileSystem.cpp.o
+
+.PHONY : src/fs/FileSystem.o
+
+# target to build an object file
+src/fs/FileSystem.cpp.o:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileSystem.cpp.o
+	$(MAKE) -f CMakeFiles/FILE_SYSTEM.dir/build.make CMakeFiles/FILE_SYSTEM.dir/src/fs/FileSystem.cpp.o
+.PHONY : src/fs/FileSystem.cpp.o
+
+src/fs/FileSystem.i: src/fs/FileSystem.cpp.i
+
+.PHONY : src/fs/FileSystem.i
+
+# target to preprocess a source file
+src/fs/FileSystem.cpp.i:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileSystem.cpp.i
+	$(MAKE) -f CMakeFiles/FILE_SYSTEM.dir/build.make CMakeFiles/FILE_SYSTEM.dir/src/fs/FileSystem.cpp.i
+.PHONY : src/fs/FileSystem.cpp.i
+
+src/fs/FileSystem.s: src/fs/FileSystem.cpp.s
+
+.PHONY : src/fs/FileSystem.s
+
+# target to generate assembly for a file
+src/fs/FileSystem.cpp.s:
+	$(MAKE) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileSystem.cpp.s
+	$(MAKE) -f CMakeFiles/FILE_SYSTEM.dir/build.make CMakeFiles/FILE_SYSTEM.dir/src/fs/FileSystem.cpp.s
+.PHONY : src/fs/FileSystem.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -159,9 +299,23 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
 	@echo "... primitive_fs"
+	@echo "... FILE_SYSTEM"
+	@echo "... FUNCTIONS"
+	@echo "... src/app/PrimitiveFsApp.o"
+	@echo "... src/app/PrimitiveFsApp.i"
+	@echo "... src/app/PrimitiveFsApp.s"
 	@echo "... src/app/main.o"
 	@echo "... src/app/main.i"
 	@echo "... src/app/main.s"
+	@echo "... src/command/function.o"
+	@echo "... src/command/function.i"
+	@echo "... src/command/function.s"
+	@echo "... src/common/structures.o"
+	@echo "... src/common/structures.i"
+	@echo "... src/common/structures.s"
+	@echo "... src/fs/FileSystem.o"
+	@echo "... src/fs/FileSystem.i"
+	@echo "... src/fs/FileSystem.s"
 .PHONY : help
 
 

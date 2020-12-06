@@ -131,6 +131,13 @@ public: //public methods
     fs::Inode findInode(int inodeId);
 
     /**
+     * Saves given inode into data file.
+     *
+     * @param inode inode to save
+     */
+    void saveInode(const fs::Inode& inode);
+
+    /**
      * Returns all directory items of directory, represented by given inode. If inode doesn't represent folder, returns empty vector.
      *
      * @param directory inode representing the directory
@@ -211,13 +218,6 @@ private: //private methods
      * @param rootInode instance to store rootInode data into
      */
     void getRootInode(fs::Inode& rootInode);
-
-    /**
-     * Saves given inode into data file.
-     *
-     * @param inode inode to save
-     */
-    void saveInode(const fs::Inode& inode);
 
     /**
      * Reads all directory items of passed directory i-node from it's direct links and stores them into passed vector of directory items.

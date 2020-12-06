@@ -8,6 +8,7 @@
 #include <algorithm>
 #include "FileSystem.h"
 #include "../utils/ObjectNotFound.h"
+#include "../utils/FilePathUtils.h"
 
 bool FileSystem::initialize(fs::Superblock &sb) {
 
@@ -53,9 +54,9 @@ bool FileSystem::initialize(fs::Superblock &sb) {
      *
      */
     dataFile.seekp(m_superblock.getDataStartAddress(), std::ios_base::beg);
-    fs::DirectoryItem rootSelf(".", 0);
+    fs::DirectoryItem rootSelf(pfs::path::SELF, 0);
     dataFile.write((char*)&rootSelf, sizeof(fs::DirectoryItem));
-    fs::DirectoryItem rootParent("..", 0);
+    fs::DirectoryItem rootParent(pfs::path::PARENT, 0);
     dataFile.write((char*)&rootParent, sizeof(fs::DirectoryItem));
     /// We fill the empty data space
     for (int i = std::filesystem::file_size(std::filesystem::path(m_dataFileName)); i < sb.getDiskSize(); ++i) {
@@ -213,20 +214,11 @@ void FileSystem::changeDirectory(const std::string& path) {
         return;
     }
 
-    bool isAbsolute = path.rfind('/', 0) == 0;
-    std::string pathToSubstr = path;
-    std::vector<std::string> tokens;
-    std::size_t pos;
-    /// We need to find all the directories' names to go through
-    while ((pos = pathToSubstr.find('/')) != std::string::npos) {
-        tokens.push_back(pathToSubstr.substr(0, pos));
-        pathToSubstr.erase(0, pos + 1);
-    }
-    tokens.push_back(pathToSubstr); /// Adding the last token
+    std::vector<std::string> tokens = pfs::path::parsePath(path);
 
     /// First we need to know from which directory we will move
     fs::Inode referenceFolder;
-    if (isAbsolute) {
+    if (pfs::path::isAbsolute(path)) {
         getRootInode(referenceFolder);
     } else {
         referenceFolder = m_currentDirInode;
@@ -257,7 +249,7 @@ void FileSystem::changeDirectory(const std::string& path) {
     /// Setting found path as current path
     m_currentDirInode = referenceFolder;
     //TODO markovda probably delete? saves for example ../, we want an absolute path
-    m_currentDirPath = path;
+    m_currentDirPath = pfs::path::createAbsolutePath(m_currentDirPath, path);
 }
 
 void FileSystem::getRootInode(fs::Inode &rootInode) {
@@ -363,7 +355,6 @@ fs::Inode FileSystem::findInode(const int inodeId) {
         for (int j = 7; j >= 0; --j) {
             /// If the bit is 1, there is inode on this index
             if ((m_inodeBitmap.getBitmap()[i] >> j) & 0b1) {
-                /// We need to count the length of the step
                 dataFile.seekg(m_superblock.getInodeStartAddress() + (i * (7 - j) * sizeof(fs::Inode)),
                                std::ios_base::beg);
 
@@ -380,10 +371,23 @@ fs::Inode FileSystem::findInode(const int inodeId) {
 }
 
 void FileSystem::saveInode(const fs::Inode &inode) {
-    std::ifstream dataFile(m_dataFileName);
+    std::ofstream dataFile(m_dataFileName);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
 
-    //TODO markovda save inode into datafile
+    for (int i = 0; i < m_inodeBitmap.getLength(); ++i) {
+        for (int j = 7; j >= 0; --j) {
+            if (!((m_inodeBitmap.getBitmap()[i] >> j) & 0b1)) {
+                dataFile.seekp(m_superblock.getInodeStartAddress() + (i * (7 - j) * sizeof(fs::Inode)),
+                               std::ios_base::beg);
+
+                dataFile.write((char*)&inode, sizeof(fs::Inode));
+                return;
+            }
+        }
+    }
+
+    /// If we got here, there is no more free space for inodes
+    throw std::ios_base::failure("Nelze zapsat více i-uzlů");
 }
