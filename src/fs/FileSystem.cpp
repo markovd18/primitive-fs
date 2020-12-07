@@ -198,10 +198,10 @@ void FileSystem::createFile(const std::string &path, const std::string &data) {
     const std::string currentDir = m_currentDirPath;
     const fs::Inode currentInode = m_currentDirInode;
 
-    //TODO create cd function
+    /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
     changeDirectory(path);
 
-    //create file
+
 
     /// Returning back to the original directory
     m_currentDirInode = currentInode;
@@ -218,7 +218,8 @@ void FileSystem::changeDirectory(const std::string& path) {
 
     /// First we need to know from which directory we will move
     fs::Inode referenceFolder;
-    if (pfs::path::isAbsolute(path)) {
+    bool isAbsolute = pfs::path::isAbsolute(path);
+    if (isAbsolute) {
         getRootInode(referenceFolder);
     } else {
         referenceFolder = m_currentDirInode;
@@ -249,7 +250,11 @@ void FileSystem::changeDirectory(const std::string& path) {
     /// Setting found path as current path
     m_currentDirInode = referenceFolder;
     //TODO markovda probably delete? saves for example ../, we want an absolute path
-    m_currentDirPath = pfs::path::createAbsolutePath(m_currentDirPath, path);
+    if (isAbsolute) {
+        m_currentDirPath = path;
+    } else {
+        m_currentDirPath = pfs::path::createAbsolutePath(m_currentDirPath, path);
+    }
 }
 
 void FileSystem::getRootInode(fs::Inode &rootInode) {
@@ -283,7 +288,9 @@ void FileSystem::readDirItemsDirect(const fs::Inode &directory, std::vector<fs::
 
     std::vector<int32_t> links;
     for (const auto &link : directory.getDirectLinks()) {
-        links.push_back(link);
+        if (link != fs::EMPTY_LINK) {
+            links.push_back(link);
+        }
     }
 
     readDirItems(links, directoryItems);

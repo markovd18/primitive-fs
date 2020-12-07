@@ -93,6 +93,10 @@ public://public methods
             return false;
         }
 
+        if (parameters.at(1).empty()) {
+            return false;
+        }
+
         return true;
     }
 
