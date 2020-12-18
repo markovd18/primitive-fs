@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "../common/structures.h"
+#include "FileData.h"
 
 /**
  * Represents the virtual file system loaded by the application. File system is represented by one file where
@@ -97,7 +98,7 @@ public: //public methods
      * @param path path in virtual file system
      * @param data data of the file
      */
-    void createFile(const std::string& path, const std::string& data);
+    void createFile(const std::filesystem::path& path, const fs::FileData& data);
 
     /**
      * Returns the current working directory.
@@ -110,6 +111,7 @@ public: //public methods
     /**
      * Returns smallest available inode id, if any is available, otherwise returns {@code FREE_INODE_ID}.
      *
+     * @throw pfs::ObjectNotFound If no free i-node id was found
      * @return smallest available inode id, or {@code FREE_INODE_ID}
      */
     [[nodiscard]] int32_t getInodeId() const;
@@ -119,8 +121,9 @@ public: //public methods
      * throws an exception.
      *
      * @param path path to change current working directory into
+     * @throw std::invalid_argument If there is any error
      */
-    void changeDirectory(const std::string& path);
+    void changeDirectory(const std::filesystem::path& path);
 
     /**
      * Returns the inode with given id. If inode with given doesn't exist, throws an exception.

@@ -11,6 +11,7 @@
 #include "../fs/FileSystem.h"
 #include "returnval.h"
 #include "function.h"
+#include "../utils/ObjectNotFound.h"
 
 void fnct::format(const std::vector <std::string>& parameters, FileSystem* fileSystem) {
     if (fileSystem == nullptr) {
@@ -52,24 +53,37 @@ void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSyst
         std::cout << fnct::FNF_SOURCE << '\n';
         return;
     }
+
     const auto fileSize = std::filesystem::file_size(hddPath);
     char fileBuffer[fileSize];
     hddFile.read((char*)fileBuffer, fileSize);
 
     try {
-        fileSystem->createFile(parameters.at(1), fileBuffer);
+        fileSystem->createFile(parameters.at(1), fs::FileData(fileBuffer));
         std::cout << fnct::OK << '\n';
-    } catch (const std::exception& ex) {
+    } catch (const std::invalid_argument& ex) {
         std::cout << fnct::PNF_DEST << '\n';
+    } catch (const pfs::ObjectNotFound& ex) {
+        std::cout << fnct::FS_FULL << '\n';
     }
 
 }
 
 void fnct::pwd(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
     std::cout << fileSystem->getCurrentDir() << '\n';
 }
 
 void fnct::cd(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
     ///Here we don't validate anythibg. If no parameter is passed, we cd to root directory, otherwise we try to cd into given directory
     try {
         if (parameters.empty() || parameters.at(0).empty()) {
@@ -78,7 +92,7 @@ void fnct::cd(const std::vector<std::string> &parameters, FileSystem *fileSystem
             fileSystem->changeDirectory(parameters.at(0));
         }
         std::cout << fnct::OK << '\n';
-    } catch (const std::exception& ex) {
+    } catch (const std::invalid_argument& ex) {
         std::cout << fnct::PNF_DEST << '\n';
     }
 }

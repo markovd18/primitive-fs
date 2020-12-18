@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <cstring>
 #include <array>
+#include <string>
+#include <vector>
 
 /**
 * Namespace with fundamental parts of the file system.
@@ -72,6 +74,8 @@ namespace fs {
         bool addDirectLink(int32_t index);
 
         bool addIndirectLink(int32_t index);
+
+        bool setData(const std::vector<std::size_t>& )
     };
 
     /**

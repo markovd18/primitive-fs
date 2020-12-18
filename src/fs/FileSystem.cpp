@@ -9,6 +9,8 @@
 #include "FileSystem.h"
 #include "../utils/ObjectNotFound.h"
 #include "../utils/FilePathUtils.h"
+#include "../utils/FileDataUtils.h"
+#include "FileData.h"
 
 bool FileSystem::initialize(fs::Superblock &sb) {
 
@@ -111,7 +113,7 @@ int32_t FileSystem::getInodeId() const {
         }
     }
     /// If no bit is free, we return FREE_INODE_ID
-    return fs::FREE_INODE_ID;
+    throw pfs::ObjectNotFound("Nenalezeno volné id pro i-uzel. Nelze uložit další i-uzly!");
 }
 
 bool FileSystem::writeSuperblock(std::ofstream& dataFile, fs::Superblock &sb) {
@@ -193,7 +195,7 @@ bool FileSystem::readBitmap(std::ifstream &dataFile, fs::Bitmap &bitmap, int off
     return !dataFile.bad();
 }
 
-void FileSystem::createFile(const std::string &path, const std::string &data) {
+void FileSystem::createFile(const std::filesystem::path &path, const fs::FileData &fileData) {
     /// We store current working directory, so we can return back in the end
     const std::string currentDir = m_currentDirPath;
     const fs::Inode currentInode = m_currentDirInode;
@@ -201,6 +203,11 @@ void FileSystem::createFile(const std::string &path, const std::string &data) {
     /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
     changeDirectory(path);
 
+    fs::Inode inode(getInodeId(), false, fileData.size());
+
+    std::vector<std::string> dataClusters = pfs::data::parseData(fileData, fs::Superblock::CLUSTER_SIZE);
+    //std::vector<std::size_t> dataClustersIndexes = getFreeDataBlocks(dataClusters.size());
+    //TODO markovd: getFreeDataBlocks
 
 
     /// Returning back to the original directory
@@ -208,7 +215,7 @@ void FileSystem::createFile(const std::string &path, const std::string &data) {
     m_currentDirPath = currentDir;
 }
 
-void FileSystem::changeDirectory(const std::string& path) {
+void FileSystem::changeDirectory(const std::filesystem::path& path) {
     if (path.empty()) {
         /// If no path is provided, we don't change anything and return.
         return;
@@ -236,7 +243,7 @@ void FileSystem::changeDirectory(const std::string& path) {
         directoryItems = getDirectoryItems(referenceFolder);
         auto it = std::find_if(directoryItems.begin(), directoryItems.end(), [&name](const fs::DirectoryItem item) { return item.nameEquals(name); });
         if (it == directoryItems.end()) {
-            throw std::ios_base::failure("Předaná cesta neexistuje");
+            throw std::invalid_argument("Předaná cesta neexistuje");
         }
 
         fs::Inode dirItemInode = findInode(it.base()->getInodeId());
@@ -249,7 +256,6 @@ void FileSystem::changeDirectory(const std::string& path) {
 
     /// Setting found path as current path
     m_currentDirInode = referenceFolder;
-    //TODO markovda probably delete? saves for example ../, we want an absolute path
     if (isAbsolute) {
         m_currentDirPath = path;
     } else {

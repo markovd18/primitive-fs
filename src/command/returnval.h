@@ -16,5 +16,7 @@ namespace fnct {
     inline static const char* CANNOT_CREATE_FILE = "CANNOT CREATE FILE";
     /** The directory is not empty. */
     inline static const char* NOT_EMPTY = "NOT EMPTY (adresář obsahuje podadresáře, nebo soubory)";
+    /** File system is full - maximum number of i-nodes was reached. */
+    inline static const char* FS_FULL = "CANNOT CREATE FILE (nelze vytvořit další i-uzly)";
 }
 #endif //PRIMITIVE_FS_RETURNVAL_H
