@@ -9,3 +9,4 @@ CMakeCache.txt
 primitive_fs
 myFs.dat
 *.a
+*.cbp

@@ -175,4 +175,22 @@ namespace fs {
         //TODO
         return false;
     }
+
+    void Inode::setData(const std::vector<std::size_t> &dataBlockIndexes) {
+        for (int i = 0; i < DIRECT_LINKS_COUNT; ++i) {
+            if (i >= dataBlockIndexes.size()) {
+                return;
+            }
+
+            m_directLinks[i] = dataBlockIndexes.at(i);
+        }
+
+        for (int i = 0; i < INDIRECT_LINKS_COUNT; ++i) {
+            if ((i + DIRECT_LINKS_COUNT) >= dataBlockIndexes.size()) {
+                return;
+            }
+
+            m_indirectLinks[i] = dataBlockIndexes.at(i + DIRECT_LINKS_COUNT);
+        }
+    }
 }

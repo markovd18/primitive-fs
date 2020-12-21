@@ -109,12 +109,25 @@ public: //public methods
         return m_currentDirPath;
     }
     /**
-     * Returns smallest available inode id, if any is available, otherwise returns {@code FREE_INODE_ID}.
+     * Returns smallest available inode id, if any is available, otherwise throws ObjectNotFound.
+     * Returned id is also an offset from the beginning of the inode storage, meaning that inode with id = 3
+     * will be stored at 3 * sizeof(fs::Inode) from the inode storage start.
      *
      * @throw pfs::ObjectNotFound If no free i-node id was found
-     * @return smallest available inode id, or {@code FREE_INODE_ID}
+     * @return smallest available inode id
      */
     [[nodiscard]] int32_t getInodeId() const;
+
+    /**
+     * Creates an instance of fs::Inode based on given parameters. This factory method should be used for creation of every
+     * inode instance, which is intended to be saved into the data file, since it checks side effects of creating inode,
+     * such as if there is any space left for new inode instance in out file system.
+     *
+     * @param isDirectory will inode represent a directory?
+     * @param fileSize size of the represented file
+     * @return fs::Inode instance
+     */
+    [[nodiscard]] fs::Inode createInode(bool isDirectory, int32_t fileSize) const;
 
     /**
      * Changes current working directory to the directory give in path. If path doesn't exist or there is a file at the end of the path,
@@ -147,6 +160,28 @@ public: //public methods
      * @return vector of directory items, if inode is directory, otherwise nothing
      */
     std::vector<fs::DirectoryItem> getDirectoryItems(const fs::Inode& directory);
+
+    /**
+     * Returns indexes of free data blocks based on the requested count. If none or less than requested count
+     * is found, throws ObjectNotFound.
+     *
+     * @param count requested number of free data blocks
+     * @return vector of free data block indexes
+     * @throw ObjectNotFound when no free index is found or not enough free indexes are found
+     */
+    std::vector<std::size_t> getFreeDataBlocks(std::size_t count);
+
+    /**
+     * Updates the inode bitmap. The member instance of bitmap, representing inode bitmap, will be saved into the data file
+     * in it's current state.
+     */
+    void updateInodeBitmap();
+
+    /**
+     * Updates the data bitmap. THe member instance of bitmap, representing data bitmap, will be saved into the data file
+     * in it's current state.
+     */
+    void updateDataBitmap();
 
 private: //private methods
     /**
@@ -247,6 +282,8 @@ private: //private methods
      * @param directoryItems vector to store directory items into
      */
     void readDirItems(const std::vector<int32_t>& indexList, std::vector<fs::DirectoryItem>& directoryItems);
+
+    void saveFileData(const std::vector<std::string>& dataClusters, const std::vector<size_t>& dataClusterIndexes);
 };
 
 

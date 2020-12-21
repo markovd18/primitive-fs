@@ -157,6 +157,19 @@ FILE_SYSTEM/fast:
 .PHONY : FILE_SYSTEM/fast
 
 #=============================================================================
+# Target rules for targets named FILE_DATA
+
+# Build rule for target.
+FILE_DATA: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 FILE_DATA
+.PHONY : FILE_DATA
+
+# fast build rule for target.
+FILE_DATA/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_DATA.dir/build.make CMakeFiles/FILE_DATA.dir/build
+.PHONY : FILE_DATA/fast
+
+#=============================================================================
 # Target rules for targets named primitive_fs
 
 # Build rule for target.
@@ -280,6 +293,36 @@ src/common/structures.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/common/structures.cpp.s
 .PHONY : src/common/structures.cpp.s
 
+src/fs/FileData.o: src/fs/FileData.cpp.o
+
+.PHONY : src/fs/FileData.o
+
+# target to build an object file
+src/fs/FileData.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_DATA.dir/build.make CMakeFiles/FILE_DATA.dir/src/fs/FileData.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileData.cpp.o
+.PHONY : src/fs/FileData.cpp.o
+
+src/fs/FileData.i: src/fs/FileData.cpp.i
+
+.PHONY : src/fs/FileData.i
+
+# target to preprocess a source file
+src/fs/FileData.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_DATA.dir/build.make CMakeFiles/FILE_DATA.dir/src/fs/FileData.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileData.cpp.i
+.PHONY : src/fs/FileData.cpp.i
+
+src/fs/FileData.s: src/fs/FileData.cpp.s
+
+.PHONY : src/fs/FileData.s
+
+# target to generate assembly for a file
+src/fs/FileData.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_DATA.dir/build.make CMakeFiles/FILE_DATA.dir/src/fs/FileData.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileData.cpp.s
+.PHONY : src/fs/FileData.cpp.s
+
 src/fs/FileSystem.o: src/fs/FileSystem.cpp.o
 
 .PHONY : src/fs/FileSystem.o
@@ -318,6 +361,7 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... FILE_DATA"
 	@echo "... FILE_SYSTEM"
 	@echo "... FUNCTIONS"
 	@echo "... primitive_fs"
@@ -333,6 +377,9 @@ help:
 	@echo "... src/common/structures.o"
 	@echo "... src/common/structures.i"
 	@echo "... src/common/structures.s"
+	@echo "... src/fs/FileData.o"
+	@echo "... src/fs/FileData.i"
+	@echo "... src/fs/FileData.s"
 	@echo "... src/fs/FileSystem.o"
 	@echo "... src/fs/FileSystem.i"
 	@echo "... src/fs/FileSystem.s"

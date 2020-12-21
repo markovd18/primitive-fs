@@ -7,10 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include "FileSystem.h"
-#include "../utils/ObjectNotFound.h"
 #include "../utils/FilePathUtils.h"
-#include "../utils/FileDataUtils.h"
-#include "FileData.h"
 
 bool FileSystem::initialize(fs::Superblock &sb) {
 
@@ -103,17 +100,11 @@ bool FileSystem::initializeFromExisting() {
 }
 
 int32_t FileSystem::getInodeId() const {
-    /// We go through the entire bitmap
-    for (std::size_t i = 0; i < m_inodeBitmap.getLength(); ++i) {
-        for (std::size_t j = 7; j >= 0; --j) {
-            if (!((m_inodeBitmap.getBitmap()[i] >> j) & 0b1)) {
-                /// If the bit is 0, we return it's index as the inode id
-                return i + (7 - j);
-            }
-        }
-    }
-    /// If no bit is free, we return FREE_INODE_ID
-    throw pfs::ObjectNotFound("Nenalezeno volné id pro i-uzel. Nelze uložit další i-uzly!");
+    return m_inodeBitmap.findFirstFreeIndex();
+}
+
+fs::Inode FileSystem::createInode(bool isDirectory, int32_t fileSize) const {
+    return fs::Inode(getInodeId(), isDirectory, fileSize);
 }
 
 bool FileSystem::writeSuperblock(std::ofstream& dataFile, fs::Superblock &sb) {
@@ -203,12 +194,14 @@ void FileSystem::createFile(const std::filesystem::path &path, const fs::FileDat
     /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
     changeDirectory(path);
 
-    fs::Inode inode(getInodeId(), false, fileData.size());
+    fs::Inode inode = createInode(false, fileData.size());
 
-    std::vector<std::string> dataClusters = pfs::data::parseData(fileData, fs::Superblock::CLUSTER_SIZE);
-    //std::vector<std::size_t> dataClustersIndexes = getFreeDataBlocks(dataClusters.size());
-    //TODO markovd: getFreeDataBlocks
+    fs::ClusteredFileData clusteredData(fileData);
+    std::vector<std::size_t> dataClusterIndexes = getFreeDataBlocks(clusteredData.requiredDataBlocks());
+    inode.setData(dataClusterIndexes);
 
+    saveInode(inode);
+    //saveFileData(dataClusters, dataClusterIndexes);
 
     /// Returning back to the original directory
     m_currentDirInode = currentInode;
@@ -384,23 +377,73 @@ fs::Inode FileSystem::findInode(const int inodeId) {
 }
 
 void FileSystem::saveInode(const fs::Inode &inode) {
+    if (inode.getInodeId() == fs::FREE_INODE_ID) {
+        throw std::invalid_argument("Nelze uložit i-uzel bez unikátního ID");
+    }
+
     std::ofstream dataFile(m_dataFileName);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
 
-    for (int i = 0; i < m_inodeBitmap.getLength(); ++i) {
-        for (int j = 7; j >= 0; --j) {
-            if (!((m_inodeBitmap.getBitmap()[i] >> j) & 0b1)) {
-                dataFile.seekp(m_superblock.getInodeStartAddress() + (i * (7 - j) * sizeof(fs::Inode)),
-                               std::ios_base::beg);
-
-                dataFile.write((char*)&inode, sizeof(fs::Inode));
-                return;
-            }
-        }
-    }
+    /// Unique ID of each i-node also represents it's index in the i-node storage, so we don't need to iterate through
+    /// the bitmap again
+    dataFile.seekp(inode.getInodeId() * sizeof(fs::Inode), std::ios_base::beg);
+    dataFile.write((char*)&inode, sizeof(fs::Inode));
 
     /// If we got here, there is no more free space for inodes
     throw std::ios_base::failure("Nelze zapsat více i-uzlů");
+}
+
+std::vector<std::size_t> FileSystem::getFreeDataBlocks(const std::size_t count) {
+    return m_dataBitmap.findFreeIndexes(count);
+}
+
+void FileSystem::saveFileData(const std::vector<std::string>& dataClusters, const std::vector<size_t>& dataClusterIndexes) {
+    std::ofstream dataFile(m_dataFileName);
+    if (!dataFile) {
+        throw std::ios_base::failure("Chyba při otevírání datového souboru");
+    }
+
+    std::size_t cluster = 0;
+    for (int i = 0; i < fs::Inode::DIRECT_LINKS_COUNT; ++i) {
+        if (i >= dataClusterIndexes.size()) {
+            return;
+        }
+
+        m_dataBitmap.setIndexFilled(dataClusterIndexes.at(i));
+        dataFile.seekp(m_superblock.getDataStartAddress() + dataClusterIndexes.at(i), std::ios_base::beg);
+        dataFile.write(dataClusters.at(cluster).data(), dataClusters.at(cluster).length());
+        cluster++;
+    }
+
+    for (int i = 0; i < fs::Inode::INDIRECT_LINKS_COUNT; ++i) {
+        if ((i + fs::Inode::DIRECT_LINKS_COUNT) >= dataClusterIndexes.size()) {
+            return;
+        }
+
+        m_dataBitmap.setIndexFilled(dataClusterIndexes.at(i + fs::Inode::DIRECT_LINKS_COUNT));
+        //TODO markovd save indirect data
+    }
+
+    /// In the end we need to save the changes we made to the bitmap
+    writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
+}
+
+void FileSystem::updateInodeBitmap() {
+    std::ofstream dataFile(m_dataFileName);
+    if (!dataFile) {
+        throw std::ios_base::failure("Chyba při otevírání datového souboru");
+    }
+
+    writeBitmap(dataFile, m_inodeBitmap, m_superblock.getInodeBitmapStartAddress());
+}
+
+void FileSystem::updateDataBitmap() {
+    std::ofstream dataFile(m_dataFileName);
+    if (!dataFile) {
+        throw std::ios_base::failure("Chyba při otevírání datového souboru");
+    }
+
+    writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
 }

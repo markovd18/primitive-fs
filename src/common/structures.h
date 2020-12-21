@@ -10,6 +10,7 @@
 #include <array>
 #include <string>
 #include <vector>
+#include "../utils/ObjectNotFound.h"
 
 /**
 * Namespace with fundamental parts of the file system.
@@ -24,59 +25,6 @@ namespace fs {
      * Value of empty direct of indirect link to data file in i-node.
      */
     constexpr int32_t EMPTY_LINK = -1;
-
-    /**
-     * One I-Node describes exactly one file. Directory is also file and can be described by I-Node. It also
-     * describes all the data that the file is containing with direct and indirect links. Inode structure has
-     * 5 direct links allowed and 2 indirect links allowed, if one stored big files and would run out of direct links.
-     * Every Inode is completely represented and can be found by it's ID.
-     */
-    class Inode {
-    public: //public attributes
-        static constexpr size_t DIRECT_LINKS_COUNT = 5;     //number of allowed direct links to data blocks
-        static constexpr size_t INDIRECT_LINKS_COUNT = 2;   // number of allowed indirect links to data blocks
-    private: //private attributes
-        int32_t m_inodeId = fs::FREE_INODE_ID;                     //i-node id - if nodeId = FREE_INODE_ID, then the inode is free
-        bool m_isDirectory = false;                   //file or directory
-        int8_t m_references = 1;                  //number of references on i-node - used for hardlinks
-        int32_t m_fileSize = 0;                   //size of file in bytes
-        std::array<int32_t, DIRECT_LINKS_COUNT> m_directLinks{}; // direct links to data blocks
-        std::array<int32_t, INDIRECT_LINKS_COUNT> m_indirectLinks{};   // indirect links to data blocks
-    public: //public methods
-        Inode();
-        Inode(int32_t nodeId, bool isDirectory, int32_t fileSize);
-        Inode(Inode& inode) = default;
-        Inode(Inode&& inode) = default;
-        Inode& operator=(const Inode& inode) = default;
-        Inode& operator=(Inode&& inode) = default;
-        ~Inode() = default;
-
-        [[nodiscard]] int32_t getInodeId() const;
-
-        void setInodeId(int32_t nodeId);
-
-        [[nodiscard]] bool isDirectory() const;
-
-        void setIsDirectory(bool isDirectory);
-
-        [[nodiscard]] int8_t getReferences() const;
-
-        void setReferences(int8_t references);
-
-        [[nodiscard]] int32_t getFileSize() const;
-
-        void setFileSize(int32_t fileSize);
-
-        [[nodiscard]] const std::array<int32_t, DIRECT_LINKS_COUNT> &getDirectLinks() const;
-
-        [[nodiscard]] const std::array<int32_t, INDIRECT_LINKS_COUNT> &getIndirectLinks() const;
-
-        bool addDirectLink(int32_t index);
-
-        bool addIndirectLink(int32_t index);
-
-        bool setData(const std::vector<std::size_t>& )
-    };
 
     /**
      * Super-block is the most important structure in the file system. It contains all the much needed information
@@ -133,6 +81,68 @@ namespace fs {
         [[nodiscard]] int32_t getDataStartAddress() const;
         /** Getter for the maximum i-node count. */
         [[nodiscard]] int32_t getInodeCount() const;
+    };
+
+    /**
+     * One I-Node describes exactly one file. Directory is also file and can be described by I-Node. It also
+     * describes all the data that the file is containing with direct and indirect links. Inode structure has
+     * 5 direct links allowed and 2 indirect links allowed, if one stored big files and would run out of direct links.
+     * Every Inode is completely represented and can be found by it's ID.
+     */
+    class Inode {
+    public: //public attributes
+        static constexpr size_t DIRECT_LINKS_COUNT = 5;     //number of allowed direct links to data blocks
+        static constexpr size_t INDIRECT_LINKS_COUNT = 2;   // number of allowed indirect links to data blocks
+        static constexpr size_t LINKS_IN_INDIRECT = fs::Superblock::CLUSTER_SIZE / sizeof(int32_t); //number of direct links that fit into indirect link
+    private: //private attributes
+        int32_t m_inodeId = fs::FREE_INODE_ID;                     //i-node id - if nodeId = FREE_INODE_ID, then the inode is free
+        bool m_isDirectory = false;                   //file or directory
+        int8_t m_references = 1;                  //number of references on i-node - used for hardlinks
+        int32_t m_fileSize = 0;                   //size of file in bytes
+        std::array<int32_t, DIRECT_LINKS_COUNT> m_directLinks{}; // direct links to data blocks
+        std::array<int32_t, INDIRECT_LINKS_COUNT> m_indirectLinks{};   // indirect links to data blocks
+    public: //public methods
+        Inode();
+        Inode(int32_t nodeId, bool isDirectory, int32_t fileSize);
+        Inode(Inode& inode) = default;
+        Inode(Inode&& inode) = default;
+        Inode& operator=(const Inode& inode) = default;
+        Inode& operator=(Inode&& inode) = default;
+        ~Inode() = default;
+
+        [[nodiscard]] int32_t getInodeId() const;
+
+        void setInodeId(int32_t nodeId);
+
+        [[nodiscard]] bool isDirectory() const;
+
+        void setIsDirectory(bool isDirectory);
+
+        [[nodiscard]] int8_t getReferences() const;
+
+        void setReferences(int8_t references);
+
+        [[nodiscard]] int32_t getFileSize() const;
+
+        void setFileSize(int32_t fileSize);
+
+        [[nodiscard]] const std::array<int32_t, DIRECT_LINKS_COUNT> &getDirectLinks() const;
+
+        [[nodiscard]] const std::array<int32_t, INDIRECT_LINKS_COUNT> &getIndirectLinks() const;
+
+        bool addDirectLink(int32_t index);
+
+        bool addIndirectLink(int32_t index);
+
+        /**
+         * Fills this inode's direct and indirect links with given vector of indexes.
+         * First DIRECT_LINKS_COUNT items of vector are treated as direct links and next INDIRECT_LINKS_COUNT
+         * items of vector are treated as indirect links. If the vector size is bigger than
+         * DIRECT_LINKS_COUNT + INDIRECT_LINKS_COUNT, only sum of these constants will be used.
+         *
+         * @param dataBlockIndexes vector of indexes to fill inode with
+         */
+        void setData(const std::vector<std::size_t>& dataBlockIndexes);
     };
 
     /**
@@ -260,6 +270,79 @@ namespace fs {
 
         [[nodiscard]] size_t getLength() const {
             return m_length;
+        }
+
+        /**
+         * Returns given number of free indexes. Throws ObjectNotFound if none or less than given number of indexes is found.
+         *
+         * @param count number of free indexes to find
+         * @return vector if free indexes
+         * @throw ObjectNotFound if none or less than `count` free indexes is found
+         */
+        [[nodiscard]] std::vector<std::size_t> findFreeIndexes(const std::size_t count) const {
+            std::vector<std::size_t> freeIndexes;
+            /// Iterating through the data bitmap
+            for (int i = 0; i < m_length; ++i) {
+                for (int j = 7; j >= 0; --j) {
+                    if (!((m_bitmap[i] >> j) & 0b1)) {
+                        freeIndexes.push_back(i + (7 - j));
+                        if (freeIndexes.size() == count) {
+                            return freeIndexes;
+                        }
+                    }
+                }
+            }
+
+            /// No free index found or not enough of free indexes
+            throw pfs::ObjectNotFound("Nepodařilo se najít zadané množství volných indexů bitmapy");
+        }
+
+        /**
+         * Finds first free index in this bitmap. If none is found, throws ObjectNotFound.
+         *
+         * @return first free index
+         * @throw ObjectNotFound if no free index is found
+         */
+        [[nodiscard]] int32_t findFirstFreeIndex() const {
+            /// We go through the entire bitmap
+            for (std::size_t i = 0; i < m_length; ++i) {
+                for (std::size_t j = 7; j >= 0; --j) {
+                    if (!((m_bitmap[i] >> j) & 0b1)) {
+                        /// If the bit is 0, we return it's index as the inode id
+                        return i + (7 - j);
+                    }
+                }
+            }
+            /// If we get here, the bitmap is full
+            throw pfs::ObjectNotFound("Nenalezen žádný volný index v bitmapě");
+        }
+
+        /**
+         * Sets index-th bit in this bitmap to 1
+         * @param index index to set to 1
+         */
+        void setIndexFilled(const std::size_t index) {
+            std::size_t bitmapIndex = index / 8;
+            if (bitmapIndex >= m_length) {
+                return;
+            }
+
+            std::size_t subIndex = index % 8;
+            m_bitmap[bitmapIndex] |= 1UL << subIndex;
+        }
+
+        /**
+         * Sets index-th bit in this bitmap to 0
+         * @param index index to set to 0
+         */
+        void setIndexFree(const std::size_t index) {
+            std::size_t bitmapIndex = index / 8;
+            if (bitmapIndex >= m_length) {
+                return;
+            }
+
+            std::size_t subIndex = index % 8;
+            m_bitmap[bitmapIndex] &= ~(1UL << subIndex);
         }
     };
 }
