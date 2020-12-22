@@ -187,22 +187,31 @@ bool FileSystem::readBitmap(std::ifstream &dataFile, fs::Bitmap &bitmap, int off
 }
 
 void FileSystem::createFile(const std::filesystem::path &path, const fs::FileData &fileData) {
+    if (!path.has_filename()) {
+        throw std::invalid_argument("Předaná cesta nekončí názvem souboru");
+    }
+
+    std::string pathStr = path.string();
+    std::string pathNoFilename = pathStr.substr(0, pathStr.length() - path.filename().string().length());
     /// We store current working directory, so we can return back in the end
     const std::string currentDir = m_currentDirPath;
     const fs::Inode currentInode = m_currentDirInode;
 
-    /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
-    changeDirectory(path);
+    if (m_currentDirPath != pathNoFilename) {
+        /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
+        changeDirectory(pathNoFilename);
+    }
 
     fs::Inode inode = createInode(false, fileData.size());
 
     fs::ClusteredFileData clusteredData(fileData);
-    std::vector<std::size_t> dataClusterIndexes = getFreeDataBlocks(clusteredData.requiredDataBlocks());
-    inode.setData(dataClusterIndexes);
+    std::vector<int32_t> dataClusterIndexes = getFreeDataBlocks(clusteredData.requiredDataBlocks());
+    inode.setData(fs::DataLinks(dataClusterIndexes));
 
     saveInode(inode);
-    //saveFileData(dataClusters, dataClusterIndexes);
-
+    saveFileData(clusteredData, dataClusterIndexes);
+    /// We cd'd into the parent folder so we can just save into current folder
+    saveDirItemIntoCurrent(fs::DirectoryItem(path.filename(), inode.getInodeId()));
     /// Returning back to the original directory
     m_currentDirInode = currentInode;
     m_currentDirPath = currentDir;
@@ -257,7 +266,7 @@ void FileSystem::changeDirectory(const std::filesystem::path& path) {
 }
 
 void FileSystem::getRootInode(fs::Inode &rootInode) {
-    std::ifstream dataFile(m_dataFileName);
+    std::ifstream dataFile(m_dataFileName, std::ios::binary);
     if (!dataFile) {
         return;
     }
@@ -277,6 +286,10 @@ std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const fs::Inode& di
     readDirItemsIndirect(directory, directoryItems);
 
     return directoryItems;
+}
+
+void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) {
+    //TODO markovda
 }
 
 
@@ -300,7 +313,7 @@ void FileSystem::readDirItemsIndirect(const fs::Inode &directory, std::vector<fs
         throw std::invalid_argument("Předaný inode nereprezentuje adresář");
     }
 
-    std::ifstream dataFile(m_dataFileName);
+    std::ifstream dataFile(m_dataFileName, std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při čtení dat");
     }
@@ -330,7 +343,7 @@ void FileSystem::readDirItemsIndirect(const fs::Inode &directory, std::vector<fs
 }
 
 void FileSystem::readDirItems(const std::vector<int32_t> &indexList, std::vector<fs::DirectoryItem> &directoryItems) {
-    std::ifstream dataFile(m_dataFileName);
+    std::ifstream dataFile(m_dataFileName, std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při čtení ze souboru");
     }
@@ -351,7 +364,7 @@ void FileSystem::readDirItems(const std::vector<int32_t> &indexList, std::vector
 }
 
 fs::Inode FileSystem::findInode(const int inodeId) {
-    std::ifstream dataFile(m_dataFileName);
+    std::ifstream dataFile(m_dataFileName, std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při čtení ze souboru");
     }
@@ -381,49 +394,54 @@ void FileSystem::saveInode(const fs::Inode &inode) {
         throw std::invalid_argument("Nelze uložit i-uzel bez unikátního ID");
     }
 
-    std::ofstream dataFile(m_dataFileName);
+    std::ofstream dataFile(m_dataFileName, std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
 
     /// Unique ID of each i-node also represents it's index in the i-node storage, so we don't need to iterate through
     /// the bitmap again
-    dataFile.seekp(inode.getInodeId() * sizeof(fs::Inode), std::ios_base::beg);
+    dataFile.seekp(m_superblock.getInodeStartAddress() + (inode.getInodeId() * sizeof(fs::Inode)), std::ios_base::beg);
     dataFile.write((char*)&inode, sizeof(fs::Inode));
-
-    /// If we got here, there is no more free space for inodes
-    throw std::ios_base::failure("Nelze zapsat více i-uzlů");
 }
 
-std::vector<std::size_t> FileSystem::getFreeDataBlocks(const std::size_t count) {
+std::vector<int32_t> FileSystem::getFreeDataBlocks(const std::size_t count) {
     return m_dataBitmap.findFreeIndexes(count);
 }
 
-void FileSystem::saveFileData(const std::vector<std::string>& dataClusters, const std::vector<size_t>& dataClusterIndexes) {
-    std::ofstream dataFile(m_dataFileName);
+void FileSystem::saveFileData(const fs::ClusteredFileData& clusteredData, const std::vector<int32_t>& dataClusterIndexes) {
+    std::ofstream dataFile(m_dataFileName, std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
 
-    std::size_t cluster = 0;
-    for (int i = 0; i < fs::Inode::DIRECT_LINKS_COUNT; ++i) {
-        if (i >= dataClusterIndexes.size()) {
-            return;
+    std::size_t cluster = fs::Inode::DIRECT_LINKS_COUNT;
+    std::size_t processedLinksInIndirect = fs::Inode::LINKS_IN_INDIRECT;
+    int32_t currentIndirectLink;
+    for (int i = 0; i < dataClusterIndexes.size(); ++i) {
+        if (i < fs::Inode::DIRECT_LINKS_COUNT) {
+            m_dataBitmap.setIndexFilled(dataClusterIndexes.at(i));
+            dataFile.seekp(m_superblock.getDataStartAddress() + dataClusterIndexes.at(i), std::ios_base::beg);
+            dataFile.write(clusteredData.at(i).data(), clusteredData.at(i).length());
+        } else {
+            if (processedLinksInIndirect == fs::Inode::LINKS_IN_INDIRECT) {
+                /// Just saving the indirect index, will be saving there other direct links, is already saved in inode
+                currentIndirectLink = dataClusterIndexes.at(i);
+                m_dataBitmap.setIndexFilled(currentIndirectLink);
+                processedLinksInIndirect = 0;
+            } else {
+                /// Saving the direct data
+                m_dataBitmap.setIndexFilled(dataClusterIndexes.at(i));
+                dataFile.seekp(m_superblock.getDataStartAddress() + dataClusterIndexes.at(i), std::ios_base::beg);
+                dataFile.write(clusteredData.at(cluster).data(), clusteredData.at(cluster).length());
+                /// Saving a link to direct data to indirect data cluster
+                dataFile.seekp(m_superblock.getDataStartAddress() + currentIndirectLink + (processedLinksInIndirect * sizeof(int32_t)), std::ios_base::beg);
+                dataFile.write((char*)&dataClusterIndexes.at(i), sizeof(int32_t));
+                /// Incrementing needed variables
+                cluster++;
+                processedLinksInIndirect++;
+            }
         }
-
-        m_dataBitmap.setIndexFilled(dataClusterIndexes.at(i));
-        dataFile.seekp(m_superblock.getDataStartAddress() + dataClusterIndexes.at(i), std::ios_base::beg);
-        dataFile.write(dataClusters.at(cluster).data(), dataClusters.at(cluster).length());
-        cluster++;
-    }
-
-    for (int i = 0; i < fs::Inode::INDIRECT_LINKS_COUNT; ++i) {
-        if ((i + fs::Inode::DIRECT_LINKS_COUNT) >= dataClusterIndexes.size()) {
-            return;
-        }
-
-        m_dataBitmap.setIndexFilled(dataClusterIndexes.at(i + fs::Inode::DIRECT_LINKS_COUNT));
-        //TODO markovd save indirect data
     }
 
     /// In the end we need to save the changes we made to the bitmap
@@ -431,7 +449,7 @@ void FileSystem::saveFileData(const std::vector<std::string>& dataClusters, cons
 }
 
 void FileSystem::updateInodeBitmap() {
-    std::ofstream dataFile(m_dataFileName);
+    std::ofstream dataFile(m_dataFileName, std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
@@ -440,7 +458,7 @@ void FileSystem::updateInodeBitmap() {
 }
 
 void FileSystem::updateDataBitmap() {
-    std::ofstream dataFile(m_dataFileName);
+    std::ofstream dataFile(m_dataFileName, std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }

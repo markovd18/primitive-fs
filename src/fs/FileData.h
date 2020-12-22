@@ -20,17 +20,15 @@ namespace fs {
         std::string m_dataBuffer;
 
     public://public methods
-        explicit FileData(std::string dataBuffer) : m_dataBuffer(std::move(dataBuffer)) {}
+        explicit FileData(std::string dataBuffer);
 
-        [[nodiscard]] std::string data() const { return m_dataBuffer; }
+        [[nodiscard]] std::string data() const;
 
         /**
          * Returns number of bytes used by the data.
          * @return size of the data in bytes
          */
-        [[nodiscard]] int size() const noexcept {
-            return m_dataBuffer.length();
-        }
+        [[nodiscard]] int size() const noexcept;
     };
 
     /**
@@ -66,37 +64,29 @@ namespace fs {
          *
          * @param dataClusters vector of data
          */
-        explicit ClusteredFileData(const std::vector<std::string>& dataClusters) {
-            std::string data;
-            for (const auto &cluster : dataClusters) {
-                data += cluster;
-            }
-
-            m_dataClusters = parseData(data, fs::Superblock::CLUSTER_SIZE);
-        }
+        explicit ClusteredFileData(const std::vector<std::string>& dataClusters);
 
         /**
          * Creates an instance from given string of data. Data is parsed by proper length.
          *
          * @param data string of data to be parsed into clusters
          */
-        explicit ClusteredFileData(const std::string& data) : m_dataClusters(parseData(data)) {}
+        explicit ClusteredFileData(const std::string& data);
 
-        /** TODO markovd move to cpp file and reformat cmakelists
+        /**
          * Creates an instance from given @a FileData. File data is parsed by proper length.
          *
          * @param fileData file data to be parsed into clusters
          */
-        explicit ClusteredFileData(const fs::FileData& fileData) : m_dataClusters(parseData(fileData)) {}
+        explicit ClusteredFileData(const fs::FileData& fileData);
 
         /**
-         * Returns number of clusters stored.
+         * Returns a read-only reference to @a index-th cluster
          *
-         * @return number of stored clusters.
+         * @param index index of a cluster
+         * @return read-only write reference to a cluster
          */
-        [[nodiscard]] size_t size() const noexcept {
-            return m_dataClusters.size();
-        }
+        [[nodiscard]] const std::string& at(size_t index) const;
 
         /**
          * Returns a number of required data blocks required to store the data contained by this instance. It takes to account
@@ -105,43 +95,14 @@ namespace fs {
          *
          * @return number of required data blocks to store contained data
          */
-        [[nodiscard]] size_t requiredDataBlocks() const noexcept {
-            size_t clusterCount = size();
-            if (clusterCount <= fs::Inode::DIRECT_LINKS_COUNT) {
-                return clusterCount;
-            }
+        [[nodiscard]] size_t requiredDataBlocks() const noexcept;
 
-            return (((clusterCount - fs::Inode::DIRECT_LINKS_COUNT) / fs::Inode::LINKS_IN_INDIRECT) + 1); /// +1 if there is a remainder
-        }
-    };
-
-    /**
-     * Class uniting direct and indirect links to data blocks of a file.
-     */
-    class DataLinks {
-        //TODO markovd maybe delete completely? just moving the exact code from inode, probably redundant
-    private://private attributes
-        std::array<size_t, fs::Inode::DIRECT_LINKS_COUNT> m_directLinks;
-        std::array<size_t, fs::Inode::INDIRECT_LINKS_COUNT> m_indirectLinks;
-
-    public://public methods
-        explicit DataLinks(const std::vector<size_t>& dataClusterIndexes) {
-            for (int i = 0; i < fs::Inode::DIRECT_LINKS_COUNT; ++i) {
-                if (i >= dataClusterIndexes.size()) {
-                    return;
-                }
-
-                m_directLinks[i] = dataClusterIndexes[i];
-            }
-
-            for (int i = 0; i < fs::Inode::INDIRECT_LINKS_COUNT; ++i) {
-                if ((i + fs::Inode::DIRECT_LINKS_COUNT) >= dataClusterIndexes.size()) {
-                    return;
-                }
-
-                m_indirectLinks[i] = dataClusterIndexes[i + fs::Inode::DIRECT_LINKS_COUNT];
-            }
-        }
+        /**
+         * Returns number of clusters stored.
+         *
+         * @return number of stored clusters.
+         */
+        [[nodiscard]] size_t size() const noexcept;
     };
 }
 #endif //PRIMITIVE_FS_FILEDATA_H

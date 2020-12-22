@@ -83,6 +83,8 @@ namespace fs {
         [[nodiscard]] int32_t getInodeCount() const;
     };
 
+    class DataLinks;
+
     /**
      * One I-Node describes exactly one file. Directory is also file and can be described by I-Node. It also
      * describes all the data that the file is containing with direct and indirect links. Inode structure has
@@ -130,19 +132,35 @@ namespace fs {
 
         [[nodiscard]] const std::array<int32_t, INDIRECT_LINKS_COUNT> &getIndirectLinks() const;
 
+        [[nodiscard]] int32_t getLastFilledDirectLink() const;
+
+        [[nodiscard]] int32_t getFirstFreeDirectLink() const;
+
+        [[nodiscard]] int32_t getLastFilledIndirectLink() const;
+
+        [[nodiscatd]] int32_t getFirstFreeIndirectLink() const;
+
         bool addDirectLink(int32_t index);
 
         bool addIndirectLink(int32_t index);
 
         /**
-         * Fills this inode's direct and indirect links with given vector of indexes.
-         * First DIRECT_LINKS_COUNT items of vector are treated as direct links and next INDIRECT_LINKS_COUNT
-         * items of vector are treated as indirect links. If the vector size is bigger than
-         * DIRECT_LINKS_COUNT + INDIRECT_LINKS_COUNT, only sum of these constants will be used.
-         *
-         * @param dataBlockIndexes vector of indexes to fill inode with
+         * Clears all direct and indirect links, setting them to @a fs::EMPTY_LINK
          */
-        void setData(const std::vector<std::size_t>& dataBlockIndexes);
+        void clearData();
+
+        /**
+         * Fills this inode's direct and indirect links with given data links.
+         *
+         * @param dataLinks data links to fill inode with
+         */
+        void setData(const fs::DataLinks& dataLinks);
+
+    private://private methods
+        void init() {
+            m_directLinks.fill(EMPTY_LINK);
+            m_indirectLinks.fill(EMPTY_LINK);
+        }
     };
 
     /**
@@ -279,8 +297,8 @@ namespace fs {
          * @return vector if free indexes
          * @throw ObjectNotFound if none or less than `count` free indexes is found
          */
-        [[nodiscard]] std::vector<std::size_t> findFreeIndexes(const std::size_t count) const {
-            std::vector<std::size_t> freeIndexes;
+        [[nodiscard]] std::vector<int32_t> findFreeIndexes(const std::size_t count) const {
+            std::vector<int32_t> freeIndexes;
             /// Iterating through the data bitmap
             for (int i = 0; i < m_length; ++i) {
                 for (int j = 7; j >= 0; --j) {
@@ -345,6 +363,43 @@ namespace fs {
             m_bitmap[bitmapIndex] &= ~(1UL << subIndex);
         }
     };
+
+    /**
+     * Class uniting direct and indirect links to data blocks of a file.
+     */
+    class DataLinks {
+    private://private attributes
+        std::array<int32_t, fs::Inode::DIRECT_LINKS_COUNT> m_directLinks{};
+        std::array<int32_t, fs::Inode::INDIRECT_LINKS_COUNT> m_indirectLinks{};
+
+    public://public methods
+        /**
+         * Creates an instance of data links from given vector of data block indexes.
+         * First @a fs::Inode::DIRECT_LINKS_COUNT indexes will be treated as direct links.
+         * Then, repeatedly, following index will be treated as indirect link and next
+         * @a fs::Inode::DIRECT_LINKS_COUNT indexes will be skipped - should be stored in previous
+         * indirect link. Following index is again treated as another indirect link and so on.
+         *
+         * @param dataClusterIndexes
+         */
+        explicit DataLinks(const std::vector<int32_t>& dataClusterIndexes);
+
+        [[nodiscard]] std::array<int32_t, fs::Inode::DIRECT_LINKS_COUNT> getDirectLinks() const noexcept {
+            return m_directLinks;
+        }
+
+        [[nodiscard]] std::array<int32_t, fs::Inode::INDIRECT_LINKS_COUNT> getIndirectLinks() const noexcept {
+            return m_indirectLinks;
+        }
+
+    private://private methods
+        void init() {
+            m_directLinks.fill(fs::EMPTY_LINK);
+            m_indirectLinks.fill(fs::EMPTY_LINK);
+        }
+    };
+
+
 }
 
 #endif

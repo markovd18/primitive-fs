@@ -111,15 +111,12 @@ namespace fs {
         return DIR_ITEM_NAME_LENGTH;
     }
 
-
     Inode::Inode() {
-        m_directLinks.fill(EMPTY_LINK);
-        m_directLinks.fill(EMPTY_LINK);
+        init();
     }
     Inode::Inode(int32_t nodeId, bool isDirectory, int32_t fileSize) : m_inodeId(nodeId), m_isDirectory(isDirectory),
                                                                        m_fileSize(fileSize){
-        m_directLinks.fill(EMPTY_LINK);
-        m_indirectLinks.fill(EMPTY_LINK);
+        init();
     }
 
     int32_t Inode::getInodeId() const {
@@ -161,10 +158,10 @@ namespace fs {
         return m_indirectLinks;
     }
 
-    bool Inode::addDirectLink(int32_t index) {
-        for (int & directLink : m_directLinks) {
+    bool Inode::addDirectLink(int32_t address) {
+        for (auto & directLink : m_directLinks) {
             if (directLink == fs::EMPTY_LINK) {
-                directLink = index;
+                directLink = address;
                 return true;
             }
         }
@@ -172,25 +169,41 @@ namespace fs {
     }
 
     bool Inode::addIndirectLink(int32_t address) {
-        //TODO
+        for (auto &indirectLink : m_indirectLinks) {
+            if (indirectLink == fs::EMPTY_LINK) {
+                indirectLink = address;
+                return true;
+            }
+        }
         return false;
     }
 
-    void Inode::setData(const std::vector<std::size_t> &dataBlockIndexes) {
-        for (int i = 0; i < DIRECT_LINKS_COUNT; ++i) {
-            if (i >= dataBlockIndexes.size()) {
+    void Inode::clearData() {
+        init();
+    }
+
+    void Inode::setData(const DataLinks &dataLinks) {
+        m_directLinks = dataLinks.getDirectLinks();
+        m_indirectLinks = dataLinks.getIndirectLinks();
+    }
+
+    DataLinks::DataLinks(const std::vector<int32_t> &dataClusterIndexes) {
+        init();
+        for (int i = 0; i < m_directLinks.size(); ++i) {
+            if (i >= dataClusterIndexes.size()) {
                 return;
             }
 
-            m_directLinks[i] = dataBlockIndexes.at(i);
+            m_directLinks[i] = dataClusterIndexes[i];
         }
 
-        for (int i = 0; i < INDIRECT_LINKS_COUNT; ++i) {
-            if ((i + DIRECT_LINKS_COUNT) >= dataBlockIndexes.size()) {
+        for (int i = 0; i < m_indirectLinks.size(); ++i) {
+            size_t clusterIndex = (i * fs::Inode::LINKS_IN_INDIRECT) + i + m_directLinks.size();
+            if (clusterIndex >= dataClusterIndexes.size()) {
                 return;
             }
 
-            m_indirectLinks[i] = dataBlockIndexes.at(i + DIRECT_LINKS_COUNT);
+            m_indirectLinks[i] = dataClusterIndexes[clusterIndex];
         }
     }
 }

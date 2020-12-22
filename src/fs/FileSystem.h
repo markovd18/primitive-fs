@@ -162,6 +162,13 @@ public: //public methods
     std::vector<fs::DirectoryItem> getDirectoryItems(const fs::Inode& directory);
 
     /**
+     * Saves given directory item into current working directory.
+     *
+     * @param directoryItem directory item to save
+     */
+    void saveDirItemIntoCurrent(const fs::DirectoryItem& directoryItem);
+
+    /**
      * Returns indexes of free data blocks based on the requested count. If none or less than requested count
      * is found, throws ObjectNotFound.
      *
@@ -169,7 +176,7 @@ public: //public methods
      * @return vector of free data block indexes
      * @throw ObjectNotFound when no free index is found or not enough free indexes are found
      */
-    std::vector<std::size_t> getFreeDataBlocks(std::size_t count);
+    std::vector<int32_t> getFreeDataBlocks(std::size_t count);
 
     /**
      * Updates the inode bitmap. The member instance of bitmap, representing inode bitmap, will be saved into the data file
@@ -283,7 +290,13 @@ private: //private methods
      */
     void readDirItems(const std::vector<int32_t>& indexList, std::vector<fs::DirectoryItem>& directoryItems);
 
-    void saveFileData(const std::vector<std::string>& dataClusters, const std::vector<size_t>& dataClusterIndexes);
+    /**
+     * Saves all file data into the file system data file.
+     *
+     * @param clusteredData file data parsed into clusters
+     * @param dataClusterIndexes indexes of clusters in the file system data file
+     */
+    void saveFileData(const fs::ClusteredFileData& clusteredData, const std::vector<int32_t>& dataClusterIndexes);
 };
 
 

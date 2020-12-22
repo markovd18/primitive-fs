@@ -84,7 +84,7 @@ void fnct::cd(const std::vector<std::string> &parameters, FileSystem *fileSystem
         return;
     }
 
-    ///Here we don't validate anythibg. If no parameter is passed, we cd to root directory, otherwise we try to cd into given directory
+    ///Here we don't validate anything. If no parameter is passed, we cd to root directory, otherwise we try to cd into given directory
     try {
         if (parameters.empty() || parameters.at(0).empty()) {
             fileSystem->changeDirectory("/");

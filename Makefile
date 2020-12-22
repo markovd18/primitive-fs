@@ -76,6 +76,17 @@ CMAKE_BINARY_DIR = /home/markovda/Skola/repos/primitive-fs
 #=============================================================================
 # Targets provided globally by CMake.
 
+# Special rule for the target edit_cache
+edit_cache:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
+	/home/markovda/sw/clion-2020.2.3/bin/cmake/linux/bin/ccmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+.PHONY : edit_cache
+
+# Special rule for the target edit_cache
+edit_cache/fast: edit_cache
+
+.PHONY : edit_cache/fast
+
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
@@ -86,17 +97,6 @@ rebuild_cache:
 rebuild_cache/fast: rebuild_cache
 
 .PHONY : rebuild_cache/fast
-
-# Special rule for the target edit_cache
-edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
-	/home/markovda/sw/clion-2020.2.3/bin/cmake/linux/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
-.PHONY : edit_cache
-
-# Special rule for the target edit_cache
-edit_cache/fast: edit_cache
-
-.PHONY : edit_cache/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -129,45 +129,6 @@ preinstall/fast:
 depend:
 	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
-
-#=============================================================================
-# Target rules for targets named FUNCTIONS
-
-# Build rule for target.
-FUNCTIONS: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 FUNCTIONS
-.PHONY : FUNCTIONS
-
-# fast build rule for target.
-FUNCTIONS/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FUNCTIONS.dir/build.make CMakeFiles/FUNCTIONS.dir/build
-.PHONY : FUNCTIONS/fast
-
-#=============================================================================
-# Target rules for targets named FILE_SYSTEM
-
-# Build rule for target.
-FILE_SYSTEM: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 FILE_SYSTEM
-.PHONY : FILE_SYSTEM
-
-# fast build rule for target.
-FILE_SYSTEM/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_SYSTEM.dir/build.make CMakeFiles/FILE_SYSTEM.dir/build
-.PHONY : FILE_SYSTEM/fast
-
-#=============================================================================
-# Target rules for targets named FILE_DATA
-
-# Build rule for target.
-FILE_DATA: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 FILE_DATA
-.PHONY : FILE_DATA
-
-# fast build rule for target.
-FILE_DATA/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_DATA.dir/build.make CMakeFiles/FILE_DATA.dir/build
-.PHONY : FILE_DATA/fast
 
 #=============================================================================
 # Target rules for targets named primitive_fs
@@ -242,7 +203,6 @@ src/command/function.o: src/command/function.cpp.o
 
 # target to build an object file
 src/command/function.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FUNCTIONS.dir/build.make CMakeFiles/FUNCTIONS.dir/src/command/function.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/command/function.cpp.o
 .PHONY : src/command/function.cpp.o
 
@@ -252,7 +212,6 @@ src/command/function.i: src/command/function.cpp.i
 
 # target to preprocess a source file
 src/command/function.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FUNCTIONS.dir/build.make CMakeFiles/FUNCTIONS.dir/src/command/function.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/command/function.cpp.i
 .PHONY : src/command/function.cpp.i
 
@@ -262,7 +221,6 @@ src/command/function.s: src/command/function.cpp.s
 
 # target to generate assembly for a file
 src/command/function.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FUNCTIONS.dir/build.make CMakeFiles/FUNCTIONS.dir/src/command/function.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/command/function.cpp.s
 .PHONY : src/command/function.cpp.s
 
@@ -299,7 +257,6 @@ src/fs/FileData.o: src/fs/FileData.cpp.o
 
 # target to build an object file
 src/fs/FileData.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_DATA.dir/build.make CMakeFiles/FILE_DATA.dir/src/fs/FileData.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileData.cpp.o
 .PHONY : src/fs/FileData.cpp.o
 
@@ -309,7 +266,6 @@ src/fs/FileData.i: src/fs/FileData.cpp.i
 
 # target to preprocess a source file
 src/fs/FileData.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_DATA.dir/build.make CMakeFiles/FILE_DATA.dir/src/fs/FileData.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileData.cpp.i
 .PHONY : src/fs/FileData.cpp.i
 
@@ -319,7 +275,6 @@ src/fs/FileData.s: src/fs/FileData.cpp.s
 
 # target to generate assembly for a file
 src/fs/FileData.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_DATA.dir/build.make CMakeFiles/FILE_DATA.dir/src/fs/FileData.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileData.cpp.s
 .PHONY : src/fs/FileData.cpp.s
 
@@ -329,7 +284,6 @@ src/fs/FileSystem.o: src/fs/FileSystem.cpp.o
 
 # target to build an object file
 src/fs/FileSystem.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_SYSTEM.dir/build.make CMakeFiles/FILE_SYSTEM.dir/src/fs/FileSystem.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileSystem.cpp.o
 .PHONY : src/fs/FileSystem.cpp.o
 
@@ -339,7 +293,6 @@ src/fs/FileSystem.i: src/fs/FileSystem.cpp.i
 
 # target to preprocess a source file
 src/fs/FileSystem.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_SYSTEM.dir/build.make CMakeFiles/FILE_SYSTEM.dir/src/fs/FileSystem.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileSystem.cpp.i
 .PHONY : src/fs/FileSystem.cpp.i
 
@@ -349,7 +302,6 @@ src/fs/FileSystem.s: src/fs/FileSystem.cpp.s
 
 # target to generate assembly for a file
 src/fs/FileSystem.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILE_SYSTEM.dir/build.make CMakeFiles/FILE_SYSTEM.dir/src/fs/FileSystem.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/primitive_fs.dir/build.make CMakeFiles/primitive_fs.dir/src/fs/FileSystem.cpp.s
 .PHONY : src/fs/FileSystem.cpp.s
 
@@ -361,9 +313,6 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... FILE_DATA"
-	@echo "... FILE_SYSTEM"
-	@echo "... FUNCTIONS"
 	@echo "... primitive_fs"
 	@echo "... src/app/PrimitiveFsApp.o"
 	@echo "... src/app/PrimitiveFsApp.i"
