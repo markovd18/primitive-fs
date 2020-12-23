@@ -132,13 +132,13 @@ namespace fs {
 
         [[nodiscard]] const std::array<int32_t, INDIRECT_LINKS_COUNT> &getIndirectLinks() const;
 
-        [[nodiscard]] int32_t getLastFilledDirectLink() const;
+        [[nodiscard]] int32_t getLastFilledDirectLinkValue() const;
 
         [[nodiscard]] int32_t getFirstFreeDirectLink() const;
 
-        [[nodiscard]] int32_t getLastFilledIndirectLink() const;
+        [[nodiscard]] int32_t getLastFilledIndirectLinkValue() const;
 
-        [[nodiscatd]] int32_t getFirstFreeIndirectLink() const;
+        [[nodiscard]] int32_t getFirstFreeIndirectLink() const;
 
         bool addDirectLink(int32_t index);
 
@@ -162,6 +162,35 @@ namespace fs {
             m_indirectLinks.fill(EMPTY_LINK);
         }
     };
+
+    /**
+     * Returns value of last filled index from given array-like container (std::array, std::vector, ...).
+     * Index is considered empty when it's value equals to given @a emptyValue. Then returned index is the previous one
+     * to the one considered to be filled. If every index is filled, returns the value of last index. If no index is filled,
+     * returns @a emptyValue.
+     *
+     * @tparam T array-like container
+     * @tparam V type stored by @a T
+     * @param array @a T-typed array-like container instance to iterate through
+     * @param emptyValue @a V-typed value marking an empty index
+     * @return value of last filled index or @a emptyValue
+     */
+    template<typename T, typename V>
+    V getLastFilledIndexValue(const T& container, V emptyValue);
+
+    /**
+     * Returns first free index from given array-like container (std::array, std::vector, ...).
+     * Index is considered empty when it's value equals to given @a emptyValue. If no index is free, returns the value of
+     * last filled index.
+     *
+     * @tparam T array-like container
+     * @tparam V type stored by @a T
+     * @param array @a T-typed array-like container instance to iterate through
+     * @param emptyValue @a V-typed value marking an empty index
+     * @return value of last filled index or first emtpy index
+     */
+    template<typename T, typename V>
+    V getFirstFreeIndex(const T& conteiner, V emptyValue);
 
     /**
      * Represents one item in directory. Only carries information about name of the item

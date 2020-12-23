@@ -158,6 +158,47 @@ namespace fs {
         return m_indirectLinks;
     }
 
+    int32_t Inode::getLastFilledDirectLinkValue() const {
+        return getLastFilledIndexValue(m_directLinks, fs::EMPTY_LINK);
+    }
+
+    int32_t Inode::getFirstFreeDirectLink() const {
+        return getFirstFreeIndex(m_directLinks, fs::EMPTY_LINK);
+    }
+
+    int32_t Inode::getLastFilledIndirectLinkValue() const {
+        return getLastFilledIndexValue(m_indirectLinks, fs::EMPTY_LINK);
+    }
+
+    int32_t Inode::getFirstFreeIndirectLink() const {
+        return getFirstFreeIndex(m_indirectLinks, fs::EMPTY_LINK);
+    }
+
+    template<typename T, typename V>
+    V getLastFilledIndexValue(const T& container, const V emptyValue) {
+        int32_t lastFilled = emptyValue;
+        for (const auto &index : container) {
+            if (index == emptyValue) {
+                return lastFilled;
+            } else {
+                lastFilled = index;
+            }
+        }
+
+        return lastFilled;
+    }
+
+    template<typename T, typename V>
+    V getFirstFreeIndex(const T& container, const V emptyValue) {
+        for (int i = 0; i < container.size(); ++i) {
+            if (container[i] == emptyValue) {
+                return i;
+            }
+        }
+
+        return container[container.size() - 1];
+    }
+
     bool Inode::addDirectLink(int32_t address) {
         for (auto & directLink : m_directLinks) {
             if (directLink == fs::EMPTY_LINK) {

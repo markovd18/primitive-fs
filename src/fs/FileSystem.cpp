@@ -289,7 +289,27 @@ std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const fs::Inode& di
 }
 
 void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) {
-    //TODO markovda
+    int32_t addressToStoreTo = m_currentDirInode.getLastFilledDirectLinkValue();
+    if (addressToStoreTo != fs::EMPTY_LINK) {
+        /// First we need to check if there is any free space in the last filled data block
+
+    } else {
+        /// If the directory is empty, we just store to any free space and set index filled
+
+        addressToStoreTo = getFreeDataBlock();
+        m_currentDirInode.addDirectLink(addressToStoreTo);
+
+        std::ofstream dataFile(m_dataFileName, std::ios::binary);
+        if (!dataFile) {
+            throw std::ios_base::failure("Chyba při otevírání datového souboru");
+        }
+
+        dataFile.seekp(m_superblock.getDataStartAddress() + (addressToStoreTo * sizeof(fs::DirectoryItem)), std::ios_base::beg);
+        dataFile.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
+
+        m_dataBitmap.setIndexFilled(addressToStoreTo);
+        writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
+    }
 }
 
 
@@ -405,7 +425,11 @@ void FileSystem::saveInode(const fs::Inode &inode) {
     dataFile.write((char*)&inode, sizeof(fs::Inode));
 }
 
-std::vector<int32_t> FileSystem::getFreeDataBlocks(const std::size_t count) {
+int32_t FileSystem::getFreeDataBlock() const {
+    return m_dataBitmap.findFirstFreeIndex();
+}
+
+std::vector<int32_t> FileSystem::getFreeDataBlocks(const std::size_t count) const {
     return m_dataBitmap.findFreeIndexes(count);
 }
 

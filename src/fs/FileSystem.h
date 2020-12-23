@@ -169,6 +169,13 @@ public: //public methods
     void saveDirItemIntoCurrent(const fs::DirectoryItem& directoryItem);
 
     /**
+     * Returns index of free data block. If none is found, throws ObjectNotFound.
+     * @throw ObjectNotFound if no free index is found
+     * @return free index of data block
+     */
+    [[nodiscard]] int32_t getFreeDataBlock() const;
+
+    /**
      * Returns indexes of free data blocks based on the requested count. If none or less than requested count
      * is found, throws ObjectNotFound.
      *
@@ -176,7 +183,7 @@ public: //public methods
      * @return vector of free data block indexes
      * @throw ObjectNotFound when no free index is found or not enough free indexes are found
      */
-    std::vector<int32_t> getFreeDataBlocks(std::size_t count);
+    [[nodiscard]] std::vector<int32_t> getFreeDataBlocks(std::size_t count) const;
 
     /**
      * Updates the inode bitmap. The member instance of bitmap, representing inode bitmap, will be saved into the data file
