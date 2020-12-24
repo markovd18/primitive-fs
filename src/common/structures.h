@@ -374,7 +374,7 @@ namespace fs {
                 return;
             }
 
-            std::size_t subIndex = index % 8;
+            std::size_t subIndex = 7 - (index % 8);
             m_bitmap[bitmapIndex] |= 1UL << subIndex;
         }
 
@@ -388,7 +388,7 @@ namespace fs {
                 return;
             }
 
-            std::size_t subIndex = index % 8;
+            std::size_t subIndex =  7 - (index % 8);
             m_bitmap[bitmapIndex] &= ~(1UL << subIndex);
         }
     };

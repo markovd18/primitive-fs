@@ -39,6 +39,8 @@ bool FileSystem::initialize(fs::Superblock &sb) {
      */
     fs::Inode rootInode(0, true, 2 * sizeof(fs::DirectoryItem));
     rootInode.addDirectLink(0); /// We add direct link to the first data block, where the root folder data will be
+
+    dataFile.seekp(m_superblock.getInodeStartAddress(), std::ios_base::beg);
     dataFile.write((char*)&rootInode, sizeof(fs::Inode));
     /// We fill the empty i-node space
     for (int i = 0; i < sb.getInodeCount() - 1; ++i) {
@@ -58,7 +60,7 @@ bool FileSystem::initialize(fs::Superblock &sb) {
     fs::DirectoryItem rootParent(pfs::path::PARENT, 0);
     dataFile.write((char*)&rootParent, sizeof(fs::DirectoryItem));
     /// We fill the empty data space
-    for (int i = std::filesystem::file_size(std::filesystem::path(m_dataFileName)); i < sb.getDiskSize(); ++i) {
+    for (size_t i = (m_superblock.getDataStartAddress() + 2 * sizeof(fs::DirectoryItem)); i < sb.getDiskSize(); ++i) {
         dataFile.write("\0", sizeof(char));
     }
 
@@ -125,7 +127,7 @@ bool FileSystem::initializeInodeBitmap(std::ofstream& dataFile) {
     }
 
     m_inodeBitmap = std::move(fs::Bitmap(m_superblock.getInodeCount()));
-    m_inodeBitmap.getBitmap()[0] = 0b10000000;
+    m_inodeBitmap.setIndexFilled(0);
     return writeBitmap(dataFile, m_inodeBitmap, m_superblock.getInodeBitmapStartAddress());
 }
 
@@ -144,7 +146,7 @@ bool FileSystem::initializeDataBitmap(std::ofstream& dataFile) {
     }
 
     m_dataBitmap = std::move(fs::Bitmap(m_superblock.getInodeStartAddress() - m_superblock.getDataBitmapStartAddress()));
-    m_dataBitmap.getBitmap()[0] = 0b10000000;
+    m_dataBitmap.setIndexFilled(0);
     return writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
 }
 
@@ -292,23 +294,30 @@ void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) 
     int32_t addressToStoreTo = m_currentDirInode.getLastFilledDirectLinkValue();
     if (addressToStoreTo != fs::EMPTY_LINK) {
         /// First we need to check if there is any free space in the last filled data block
-
+        std::ifstream dataFileR(m_dataFileName, std::ios::binary);
+        if (!dataFileR) {
+            throw std::ios_base::failure("Chyba při otevírání datového souboru");
+        }
+        //TODO markovd why are there only zeros in the buffer when there should be data of two directory items in the root dir with clean fs
+        char buffer[fs::Superblock::CLUSTER_SIZE];
+        dataFileR.seekg(m_superblock.getDataStartAddress() + (addressToStoreTo * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
+        dataFileR.read(buffer, fs::Superblock::CLUSTER_SIZE);
+        std::cout << "\n";
     } else {
         /// If the directory is empty, we just store to any free space and set index filled
+        std::ofstream dataFileW(m_dataFileName, std::ios::binary);
+        if (!dataFileW) {
+            throw std::ios_base::failure("Chyba při otevírání datového souboru");
+        }
 
         addressToStoreTo = getFreeDataBlock();
         m_currentDirInode.addDirectLink(addressToStoreTo);
 
-        std::ofstream dataFile(m_dataFileName, std::ios::binary);
-        if (!dataFile) {
-            throw std::ios_base::failure("Chyba při otevírání datového souboru");
-        }
-
-        dataFile.seekp(m_superblock.getDataStartAddress() + (addressToStoreTo * sizeof(fs::DirectoryItem)), std::ios_base::beg);
-        dataFile.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
+        dataFileW.seekp(m_superblock.getDataStartAddress() + (addressToStoreTo * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
+        dataFileW.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
 
         m_dataBitmap.setIndexFilled(addressToStoreTo);
-        writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
+        writeBitmap(dataFileW, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
     }
 }
 
@@ -423,6 +432,10 @@ void FileSystem::saveInode(const fs::Inode &inode) {
     /// the bitmap again
     dataFile.seekp(m_superblock.getInodeStartAddress() + (inode.getInodeId() * sizeof(fs::Inode)), std::ios_base::beg);
     dataFile.write((char*)&inode, sizeof(fs::Inode));
+
+    /// Updating the bitmap
+    m_inodeBitmap.setIndexFilled(inode.getInodeId());
+    writeBitmap(dataFile, m_inodeBitmap, m_superblock.getInodeStartAddress());
 }
 
 int32_t FileSystem::getFreeDataBlock() const {
@@ -445,8 +458,8 @@ void FileSystem::saveFileData(const fs::ClusteredFileData& clusteredData, const 
     for (int i = 0; i < dataClusterIndexes.size(); ++i) {
         if (i < fs::Inode::DIRECT_LINKS_COUNT) {
             m_dataBitmap.setIndexFilled(dataClusterIndexes.at(i));
-            dataFile.seekp(m_superblock.getDataStartAddress() + dataClusterIndexes.at(i), std::ios_base::beg);
-            dataFile.write(clusteredData.at(i).data(), clusteredData.at(i).length());
+            dataFile.seekp(m_superblock.getDataStartAddress() + (dataClusterIndexes.at(i) * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
+            dataFile.write(clusteredData.at(i).data(), fs::Superblock::CLUSTER_SIZE);
         } else {
             if (processedLinksInIndirect == fs::Inode::LINKS_IN_INDIRECT) {
                 /// Just saving the indirect index, will be saving there other direct links, is already saved in inode
