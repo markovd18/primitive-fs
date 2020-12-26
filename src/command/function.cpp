@@ -96,3 +96,33 @@ void fnct::cd(const std::vector<std::string> &parameters, FileSystem *fileSystem
         std::cout << fnct::PNF_DEST << '\n';
     }
 }
+
+void fnct::ls(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.at(0).empty()) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    std::vector<fs::DirectoryItem> dirItems;
+    try {
+         dirItems = fileSystem->getDirectoryItems(parameters.at(0));
+    } catch (const std::invalid_argument &ex) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    for (const auto &dirItem : dirItems) {
+        char mark;
+        if (fileSystem->findInode(dirItem.getInodeId()).isDirectory()) {
+            mark = '+';
+        } else {
+            mark = '-';
+        }
+        std::cout << mark << dirItem.getItemName().data() << '\n';
+    }
+}

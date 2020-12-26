@@ -19,7 +19,7 @@ namespace pfs::path {
     /**
      * Name of the parent directory to the directory containing this item.
      */
-    static const char* PARENT = ".";
+    static const char* PARENT = "..";
 
     /**
      * Checks if given path is absolute. Returns true, if given path is absolute, otherwise false.

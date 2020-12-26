@@ -281,6 +281,20 @@ void FileSystem::getRootInode(fs::Inode &rootInode) {
     }
 }
 
+std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const std::filesystem::path &dirPath) {
+    const fs::Inode currentDirInode = m_currentDirInode;
+    const std::string currentDirPath = m_currentDirPath;
+
+    changeDirectory(dirPath);
+
+    std::vector<fs::DirectoryItem> dirItems = getDirectoryItems(m_currentDirInode);
+
+    m_currentDirInode = currentDirInode;
+    m_currentDirPath = currentDirPath;
+
+    return dirItems;
+}
+
 std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const fs::Inode& directory) {
 
     std::vector<fs::DirectoryItem> directoryItems;
@@ -294,15 +308,50 @@ void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) 
     int32_t addressToStoreTo = m_currentDirInode.getLastFilledDirectLinkValue();
     if (addressToStoreTo != fs::EMPTY_LINK) {
         /// First we need to check if there is any free space in the last filled data block
-        std::ifstream dataFileR(m_dataFileName, std::ios::binary);
+        std::ifstream dataFileR(m_dataFileName, std::ios::app);
         if (!dataFileR) {
             throw std::ios_base::failure("Chyba při otevírání datového souboru");
         }
-        //TODO markovd why are there only zeros in the buffer when there should be data of two directory items in the root dir with clean fs
-        char buffer[fs::Superblock::CLUSTER_SIZE];
-        dataFileR.seekg(m_superblock.getDataStartAddress() + (addressToStoreTo * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
-        dataFileR.read(buffer, fs::Superblock::CLUSTER_SIZE);
-        std::cout << "\n";
+
+        size_t indexInCluster = 0;
+        size_t offset = m_superblock.getDataStartAddress() + (addressToStoreTo * fs::Superblock::CLUSTER_SIZE);
+        while (indexInCluster < fs::Superblock::CLUSTER_SIZE) {
+            fs::DirectoryItem dirItem;
+            dataFileR.seekg(offset, std::ios_base::beg);
+            dataFileR.read((char*)&dirItem, sizeof(fs::DirectoryItem));
+            if (dirItem.getItemName()[0] == '\0') {
+                break;
+            }
+
+            indexInCluster += sizeof(fs::DirectoryItem);
+            offset += sizeof(fs::DirectoryItem);
+        }
+        dataFileR.close();
+
+        if (indexInCluster < fs::Superblock::CLUSTER_SIZE) {
+            std::ofstream dataFileW(m_dataFileName, std::ios::app);
+            if (!dataFileW) {
+                throw std::ios_base::failure("Chyba při otevírání datového souboru!");
+            }
+            dataFileW.seekp(offset, std::ios_base::beg);
+            dataFileW.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
+        } else {
+            //TODO markovda create separate method for saving dir item
+            /// If the directory is empty, we just store to any free space and set index filled
+            std::ofstream dataFileW(m_dataFileName, std::ios::binary);
+            if (!dataFileW) {
+                throw std::ios_base::failure("Chyba při otevírání datového souboru");
+            }
+
+            addressToStoreTo = getFreeDataBlock();
+            m_currentDirInode.addDirectLink(addressToStoreTo);
+
+            dataFileW.seekp(m_superblock.getDataStartAddress() + (addressToStoreTo * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
+            dataFileW.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
+            //TODO markovda refactor writeBitmap method and all that use it
+            m_dataBitmap.setIndexFilled(addressToStoreTo);
+            writeBitmap(dataFileW, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
+        }
     } else {
         /// If the directory is empty, we just store to any free space and set index filled
         std::ofstream dataFileW(m_dataFileName, std::ios::binary);
@@ -423,7 +472,7 @@ void FileSystem::saveInode(const fs::Inode &inode) {
         throw std::invalid_argument("Nelze uložit i-uzel bez unikátního ID");
     }
 
-    std::ofstream dataFile(m_dataFileName, std::ios::binary);
+    std::ofstream dataFile(m_dataFileName, std::ios::app);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
@@ -435,7 +484,7 @@ void FileSystem::saveInode(const fs::Inode &inode) {
 
     /// Updating the bitmap
     m_inodeBitmap.setIndexFilled(inode.getInodeId());
-    writeBitmap(dataFile, m_inodeBitmap, m_superblock.getInodeStartAddress());
+    writeBitmap(dataFile, m_inodeBitmap, m_superblock.getInodeBitmapStartAddress());
 }
 
 int32_t FileSystem::getFreeDataBlock() const {
@@ -447,7 +496,7 @@ std::vector<int32_t> FileSystem::getFreeDataBlocks(const std::size_t count) cons
 }
 
 void FileSystem::saveFileData(const fs::ClusteredFileData& clusteredData, const std::vector<int32_t>& dataClusterIndexes) {
-    std::ofstream dataFile(m_dataFileName, std::ios::binary);
+    std::ofstream dataFile(m_dataFileName, std::ios::app);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
@@ -486,7 +535,7 @@ void FileSystem::saveFileData(const fs::ClusteredFileData& clusteredData, const 
 }
 
 void FileSystem::updateInodeBitmap() {
-    std::ofstream dataFile(m_dataFileName, std::ios::binary);
+    std::ofstream dataFile(m_dataFileName, std::ios::app);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
@@ -495,10 +544,20 @@ void FileSystem::updateInodeBitmap() {
 }
 
 void FileSystem::updateDataBitmap() {
-    std::ofstream dataFile(m_dataFileName, std::ios::binary);
+    std::ofstream dataFile(m_dataFileName, std::ios::app);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
 
     writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
+}
+
+void FileSystem::saveDirItemToAddress(const fs::DirectoryItem &directoryItem, const size_t offset) {
+    std::ofstream dataFile(m_dataFileName, std::ios::app);
+    if (!dataFile) {
+        throw std::ios_base::failure("Chyba při otevírání datového souboru");
+    }
+
+    dataFile.seekp(offset, std::ios_base::beg);
+    dataFile.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
 }

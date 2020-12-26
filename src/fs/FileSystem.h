@@ -154,10 +154,20 @@ public: //public methods
     void saveInode(const fs::Inode& inode);
 
     /**
-     * Returns all directory items of directory, represented by given inode. If inode doesn't represent folder, returns empty vector.
+     * Returns all directory items of directory on given path in a virtual filesystem.
+     *
+     * @param dirPath directory path in the virtual file system
+     * @return vector of directory items
+     * @throw invalid_argument if the path doesn't exist or doesn't point to a directory
+     */
+    std::vector<fs::DirectoryItem> getDirectoryItems(const std::filesystem::path& dirPath);
+
+    /**
+     * Returns all directory items of directory, represented by given inode. If inode doesn't represent folder, throws @a invalid_argument
      *
      * @param directory inode representing the directory
-     * @return vector of directory items, if inode is directory, otherwise nothing
+     * @return vector of directory items
+     * @throw invalid_argument if the inode doesn't represent a directory
      */
     std::vector<fs::DirectoryItem> getDirectoryItems(const fs::Inode& directory);
 
@@ -304,6 +314,14 @@ private: //private methods
      * @param dataClusterIndexes indexes of clusters in the file system data file
      */
     void saveFileData(const fs::ClusteredFileData& clusteredData, const std::vector<int32_t>& dataClusterIndexes);
+
+    /**
+     * Saves directory item into data file at the given offset from the beginning of the data file
+     *
+     * @param directoryItem directory item to save
+     * @param offset index to save to
+     */
+    void saveDirItemToAddress(const fs::DirectoryItem& directoryItem, size_t offset);
 };
 
 

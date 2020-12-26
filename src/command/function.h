@@ -42,5 +42,12 @@ namespace fnct {
      * @param fileSystem file system which we want to change the working directory of
      */
     void cd(const std::vector<std::string>& parameters, FileSystem* fileSystem);
+    /**
+     * Prints all files in given directory.
+     *
+     * @param parameters requires one parameter - existing directory
+     * @param fileSystem file system which we want to access
+     */
+    void ls(const std::vector<std::string>& parameters, FileSystem* fileSystem);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H
