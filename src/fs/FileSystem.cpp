@@ -308,65 +308,84 @@ void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) 
     int32_t addressToStoreTo = m_currentDirInode.getLastFilledDirectLinkValue();
     if (addressToStoreTo != fs::EMPTY_LINK) {
         /// First we need to check if there is any free space in the last filled data block
-        std::ifstream dataFileR(m_dataFileName, std::ios::app);
-        if (!dataFileR) {
-            throw std::ios_base::failure("Chyba při otevírání datového souboru");
-        }
-
-        size_t indexInCluster = 0;
-        size_t offset = m_superblock.getDataStartAddress() + (addressToStoreTo * fs::Superblock::CLUSTER_SIZE);
-        while (indexInCluster < fs::Superblock::CLUSTER_SIZE) {
-            fs::DirectoryItem dirItem;
-            dataFileR.seekg(offset, std::ios_base::beg);
-            dataFileR.read((char*)&dirItem, sizeof(fs::DirectoryItem));
-            if (dirItem.getItemName()[0] == '\0') {
-                break;
-            }
-
-            indexInCluster += sizeof(fs::DirectoryItem);
-            offset += sizeof(fs::DirectoryItem);
-        }
-        dataFileR.close();
-
+        size_t indexInCluster = getFreeDirItemDataBlockSubindex(addressToStoreTo);
         if (indexInCluster < fs::Superblock::CLUSTER_SIZE) {
-            std::ofstream dataFileW(m_dataFileName, std::ios::app);
-            if (!dataFileW) {
+            /// We found free space in direct link and save there
+            std::ofstream dataFile(m_dataFileName, std::ios::app);
+            if (!dataFile) {
                 throw std::ios_base::failure("Chyba při otevírání datového souboru!");
             }
-            dataFileW.seekp(offset, std::ios_base::beg);
-            dataFileW.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
+            dataFile.seekp(m_superblock.getDataStartAddress() + (addressToStoreTo * fs::Superblock::CLUSTER_SIZE) + indexInCluster, std::ios_base::beg);
+            dataFile.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
         } else {
-            //TODO markovda create separate method for saving dir item
-            /// If the directory is empty, we just store to any free space and set index filled
-            std::ofstream dataFileW(m_dataFileName, std::ios::binary);
-            if (!dataFileW) {
-                throw std::ios_base::failure("Chyba při otevírání datového souboru");
+            /// Entire direct link is full, we save into next direct or indirect
+            if (m_currentDirInode.getFirstFreeDirectLink() < m_currentDirInode.getDirectLinks().size()) {
+                /// There is free direct link, so we store directly and add direct link
+                addressToStoreTo = getFreeDataBlock();
+                saveDirItemToIndex(directoryItem, addressToStoreTo);
+                m_currentDirInode.addDirectLink(addressToStoreTo);
+            } else {
+                /// Every direct link is filled, we store to indirect link
+                int32_t lastFullIndirectLink = m_currentDirInode.getLastFilledIndirectLinkValue();
+                if (lastFullIndirectLink != fs::EMPTY_LINK) {
+                    /// First we need to check if there is any free space in the last filled indirect link
+                    indexInCluster = getFreeIndirectLinkDataBlockSubindex(lastFullIndirectLink);
+                    if (indexInCluster < fs::Superblock::CLUSTER_SIZE) {
+                        /// We found free space in indirect link, save into direct link and save the link into indirect
+                        addressToStoreTo = getFreeDataBlock();
+                        saveDirItemToIndex(directoryItem, addressToStoreTo);
+
+                        std::ofstream dataFile(m_dataFileName, std::ios::app);
+                        if (!dataFile) {
+                            throw std::ios_base::failure("Chyba při otevírání datového souboru!");
+                        }
+
+                        dataFile.seekp(m_superblock.getDataStartAddress() + (lastFullIndirectLink * fs::Superblock::CLUSTER_SIZE) + indexInCluster, std::ios_base::beg);
+                        dataFile.write((char*)&addressToStoreTo, sizeof(int32_t));
+                    } else {
+                        /// Last filled indirect link is full, we save into next indirect link
+                        if (m_currentDirInode.getFirstFreeIndirectLink() < m_currentDirInode.getIndirectLinks().size()) {
+                            addressToStoreTo = getFreeDataBlock();
+                            saveDirItemToIndex(directoryItem, addressToStoreTo);
+
+                            int32_t newIndirectLink = getFreeDataBlock();
+                            m_currentDirInode.addIndirectLink(newIndirectLink);
+                            std::ofstream dataFile(m_dataFileName, std::ios::app);
+                            if (!dataFile) {
+                                throw std::ios_base::failure("Chyba při otevírání datového souboru!");
+                            }
+
+                            dataFile.seekp(m_superblock.getDataStartAddress() + (newIndirectLink * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
+                            dataFile.write((char*)&addressToStoreTo, sizeof(int32_t));
+                        } else {
+                            /// Every direct and indirect link od current directory is filled, cannot save any more items
+                            throw pfs::ObjectNotFound("Cannot save any more directory items to current directory (" + m_currentDirPath + ")");
+                        }
+                    }
+                } else {
+                    /// Every indirect link is free, we store directly and save index to indirect
+                    addressToStoreTo = getFreeDataBlock();
+                    saveDirItemToIndex(directoryItem, addressToStoreTo);
+
+                    int32_t newIndirectLink = getFreeDataBlock();
+                    m_currentDirInode.addIndirectLink(newIndirectLink);
+                    std::ofstream dataFile(m_dataFileName, std::ios::app);
+                    if (!dataFile) {
+                        throw std::ios_base::failure("Chyba při otevírání datového souboru!");
+                    }
+
+                    dataFile.seekp(m_superblock.getDataStartAddress() + (newIndirectLink * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
+                    dataFile.write((char*)&addressToStoreTo, sizeof(int32_t));
+                }
             }
-
-            addressToStoreTo = getFreeDataBlock();
-            m_currentDirInode.addDirectLink(addressToStoreTo);
-
-            dataFileW.seekp(m_superblock.getDataStartAddress() + (addressToStoreTo * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
-            dataFileW.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
-            //TODO markovda refactor writeBitmap method and all that use it
-            m_dataBitmap.setIndexFilled(addressToStoreTo);
-            writeBitmap(dataFileW, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
         }
     } else {
-        /// If the directory is empty, we just store to any free space and set index filled
-        std::ofstream dataFileW(m_dataFileName, std::ios::binary);
-        if (!dataFileW) {
-            throw std::ios_base::failure("Chyba při otevírání datového souboru");
-        }
-
+        /**
+         * Every index is free, we store to any free data block
+         */
         addressToStoreTo = getFreeDataBlock();
+        saveDirItemToIndex(directoryItem, addressToStoreTo);
         m_currentDirInode.addDirectLink(addressToStoreTo);
-
-        dataFileW.seekp(m_superblock.getDataStartAddress() + (addressToStoreTo * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
-        dataFileW.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
-
-        m_dataBitmap.setIndexFilled(addressToStoreTo);
-        writeBitmap(dataFileW, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
     }
 }
 
@@ -552,12 +571,61 @@ void FileSystem::updateDataBitmap() {
     writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
 }
 
-void FileSystem::saveDirItemToAddress(const fs::DirectoryItem &directoryItem, const size_t offset) {
-    std::ofstream dataFile(m_dataFileName, std::ios::app);
-    if (!dataFile) {
+size_t FileSystem::getFreeDirItemDataBlockSubindex(int32_t dirItemDataBlockSubindex) {
+    std::ifstream dataFileR(m_dataFileName, std::ios::app);
+    if (!dataFileR) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
 
-    dataFile.seekp(offset, std::ios_base::beg);
-    dataFile.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
+    size_t indexInCluster = 0;
+    size_t offset = m_superblock.getDataStartAddress() + (dirItemDataBlockSubindex * fs::Superblock::CLUSTER_SIZE);
+    while (indexInCluster < fs::Superblock::CLUSTER_SIZE) {
+        fs::DirectoryItem dirItem;
+        dataFileR.seekg(offset, std::ios_base::beg);
+        dataFileR.read((char*)&dirItem, sizeof(fs::DirectoryItem));
+        if (dirItem.getItemName()[0] == '\0') {
+            return indexInCluster;
+        }
+
+        indexInCluster += sizeof(fs::DirectoryItem);
+        offset += sizeof(fs::DirectoryItem);
+    }
+
+    return indexInCluster;
+}
+
+size_t FileSystem::getFreeIndirectLinkDataBlockSubindex(int32_t indirectLinkDatablockIndex) {
+    std::ifstream dataFileR(m_dataFileName, std::ios::app);
+    if (!dataFileR) {
+        throw std::ios_base::failure("Chyba při otevírání datového souboru");
+    }
+
+    size_t indexInCluster = 0;
+    size_t offset = m_superblock.getDataStartAddress() + (indirectLinkDatablockIndex * fs::Superblock::CLUSTER_SIZE);
+    while (indexInCluster < fs::Superblock::CLUSTER_SIZE) {
+        int32_t storedLink;
+        dataFileR.seekg(offset, std::ios_base::beg);
+        dataFileR.read((char*)&storedLink, sizeof(int32_t));
+        if (storedLink == 0) {
+            return indexInCluster;
+        }
+
+        indexInCluster += sizeof(fs::DirectoryItem);
+        offset += sizeof(fs::DirectoryItem);
+    }
+
+    return indexInCluster;
+}
+
+void FileSystem::saveDirItemToIndex(const fs::DirectoryItem &directoryItem, const int32_t index) {
+    std::ofstream dataFileW(m_dataFileName, std::ios::app);
+    if (!dataFileW) {
+        throw std::ios_base::failure("Chyba při otevírání datového souboru");
+    }
+
+    dataFileW.seekp(m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
+    dataFileW.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
+
+    m_dataBitmap.setIndexFilled(index);
+    writeBitmap(dataFileW, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
 }

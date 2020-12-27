@@ -316,12 +316,29 @@ private: //private methods
     void saveFileData(const fs::ClusteredFileData& clusteredData, const std::vector<int32_t>& dataClusterIndexes);
 
     /**
-     * Saves directory item into data file at the given offset from the beginning of the data file
+     * Checks given data block containing directory items for a free sub-index, where next directory item could be stored.
+     * If none is found, returns the size of a cluster.
+     *
+     * @param dirItemDataBlockSubindex index of a data block
+     * @return free sub-index in given data block or size of a data block
+     */
+    size_t getFreeDirItemDataBlockSubindex(int32_t dirItemDataBlockIndex);
+
+    /**
+     * Checks given indirect link data block containing direct links with directory items for a free sub-index, where next
+     * direct link could be stores
+     *
+     * @param indirectLinkDatablockIndex index of indirect link
+     * @return free sub-index in given data block or size of a data block
+     */
+    size_t getFreeIndirectLinkDataBlockSubindex(int32_t indirectLinkDatablockIndex);
+    /**
+     * Saves directory item into given index
      *
      * @param directoryItem directory item to save
-     * @param offset index to save to
+     * @param offset index to save directory item to
      */
-    void saveDirItemToAddress(const fs::DirectoryItem& directoryItem, size_t offset);
+    void saveDirItemToIndex(const fs::DirectoryItem& directoryItem, int32_t offset);
 };
 
 

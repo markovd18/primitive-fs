@@ -180,14 +180,14 @@ namespace fs {
 
     /**
      * Returns first free index from given array-like container (std::array, std::vector, ...).
-     * Index is considered empty when it's value equals to given @a emptyValue. If no index is free, returns the value of
-     * last filled index.
+     * Index is considered empty when it's value equals to given @a emptyValue. If no index is free, returns the size of
+     * given continer
      *
      * @tparam T array-like container
      * @tparam V type stored by @a T
      * @param array @a T-typed array-like container instance to iterate through
      * @param emptyValue @a V-typed value marking an empty index
-     * @return value of last filled index or first emtpy index
+     * @return container size or first emtpy index
      */
     template<typename T, typename V>
     V getFirstFreeIndex(const T& conteiner, V emptyValue);

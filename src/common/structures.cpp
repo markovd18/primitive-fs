@@ -196,7 +196,7 @@ namespace fs {
             }
         }
 
-        return container[container.size() - 1];
+        return container.size();
     }
 
     bool Inode::addDirectLink(int32_t address) {

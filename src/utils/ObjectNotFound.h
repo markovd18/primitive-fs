@@ -28,6 +28,10 @@ public:
         //
     }
 
+    explicit ObjectNotFound(const std::string& cause) : cause(cause.data()) {
+        //
+    }
+
     /**
      * Returns the reason why this exception was thrown.
      *
