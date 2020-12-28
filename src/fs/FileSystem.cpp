@@ -324,9 +324,7 @@ void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) 
                 throw std::ios_base::failure("Chyba při otevírání datového souboru!");
             }
             dataFile.seekp(m_superblock.getDataStartAddress() + (addressToStoreTo * fs::Superblock::CLUSTER_SIZE) + indexInCluster, std::ios_base::beg);
-            long pos = dataFile.tellp();
             dataFile.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
-            dataFile.close();
         } else {
             /// Entire direct link is full, we save into next direct or indirect
             if (m_currentDirInode.getFirstFreeDirectLink() < m_currentDirInode.getDirectLinks().size()) {
@@ -367,8 +365,10 @@ void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) 
 
                             dataFile.seekp(m_superblock.getDataStartAddress() + (newIndirectLink * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
                             dataFile.write((char*)&addressToStoreTo, sizeof(int32_t));
+                            /// Setting all other memory bits to -1 (empty) for future i/o operations
+                            dataFile.write((char*)&fs::EMPTY_LINK, fs::Superblock::CLUSTER_SIZE - sizeof(fs::EMPTY_LINK));
                         } else {
-                            /// Every direct and indirect link od current directory is filled, cannot save any more items
+                            /// Every direct and indirect link of current directory is filled, cannot save any more items
                             throw pfs::ObjectNotFound("Cannot save any more directory items to current directory (" + m_currentDirPath + ")");
                         }
                     }
@@ -386,6 +386,8 @@ void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) 
 
                     dataFile.seekp(m_superblock.getDataStartAddress() + (newIndirectLink * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
                     dataFile.write((char*)&addressToStoreTo, sizeof(int32_t));
+                    /// Setting all other memory bits to -1 (empty) for future i/o operations
+                    dataFile.write((char*)&fs::EMPTY_LINK, fs::Superblock::CLUSTER_SIZE - sizeof(fs::EMPTY_LINK));
                 }
             }
         }
@@ -435,7 +437,7 @@ void FileSystem::readDirItemsIndirect(const fs::Inode &directory, std::vector<fs
             int32_t directLink;
             dataFile.seekg(m_superblock.getDataStartAddress() + (indirectLink * fs::Superblock::CLUSTER_SIZE) + i, std::ios_base::beg);
             dataFile.read((char*)&directLink, sizeof(int32_t));
-            if (directLink != fs::EMPTY_LINK) { //TODO markovda there cannot be an empty link value in the data file atm, fix
+            if (directLink != fs::EMPTY_LINK) {
                 links.push_back(directLink);
             }
         }
@@ -616,7 +618,7 @@ size_t FileSystem::getFreeIndirectLinkDataBlockSubindex(int32_t indirectLinkData
         int32_t storedLink;
         dataFileR.seekg(offset, std::ios_base::beg);
         dataFileR.read((char*)&storedLink, sizeof(int32_t));
-        if (storedLink == 0) {
+        if (storedLink == fs::EMPTY_LINK) {
             return indexInCluster;
         }
 
@@ -635,6 +637,8 @@ void FileSystem::saveDirItemToIndex(const fs::DirectoryItem &directoryItem, cons
 
     dataFileW.seekp(m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE), std::ios_base::beg);
     dataFileW.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
+    /// When saving to new cluster, we need to make sure every other bit of memory is set to 0 (empty) for future i/o operations
+    dataFileW.write("\0", fs::Superblock::CLUSTER_SIZE - sizeof(fs::DirectoryItem));
 
     m_dataBitmap.setIndexFilled(index);
     writeBitmap(dataFileW, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
