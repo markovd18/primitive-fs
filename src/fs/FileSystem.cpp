@@ -72,7 +72,7 @@ bool FileSystem::initialize(fs::Superblock &sb) {
 }
 
 bool FileSystem::initializeFromExisting() {
-    std::ifstream dataFile(m_dataFileName, std::ios::binary);
+    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
     if (!dataFile) {
         return false;
     }
@@ -204,6 +204,12 @@ void FileSystem::createFile(const std::filesystem::path &path, const fs::FileDat
         changeDirectory(pathNoFilename);
     }
 
+    std::vector<fs::DirectoryItem> dirItems(getDirectoryItems(m_currentDirPath));
+    auto it = std::find_if(dirItems.begin(), dirItems.end(), [&path](const fs::DirectoryItem item) { return item.nameEquals(path.filename()); });
+    if (it != dirItems.end()) {
+        throw std::invalid_argument("Soubor s předaným názvem již exituje!");
+    }
+
     fs::Inode inode = createInode(false, fileData.size());
 
     fs::ClusteredFileData clusteredData(fileData);
@@ -268,7 +274,7 @@ void FileSystem::changeDirectory(const std::filesystem::path& path) {
 }
 
 void FileSystem::getRootInode(fs::Inode &rootInode) {
-    std::ifstream dataFile(m_dataFileName, std::ios::binary);
+    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
     if (!dataFile) {
         return;
     }
@@ -285,7 +291,9 @@ std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const std::filesyst
     const fs::Inode currentDirInode = m_currentDirInode;
     const std::string currentDirPath = m_currentDirPath;
 
-    changeDirectory(dirPath);
+    if (m_currentDirPath != dirPath) {
+        changeDirectory(dirPath);
+    }
 
     std::vector<fs::DirectoryItem> dirItems = getDirectoryItems(m_currentDirInode);
 
@@ -311,12 +319,14 @@ void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) 
         size_t indexInCluster = getFreeDirItemDataBlockSubindex(addressToStoreTo);
         if (indexInCluster < fs::Superblock::CLUSTER_SIZE) {
             /// We found free space in direct link and save there
-            std::ofstream dataFile(m_dataFileName, std::ios::app);
+            std::ofstream dataFile(m_dataFileName, std::ios::out | std::ios::binary | std::ios::app);
             if (!dataFile) {
                 throw std::ios_base::failure("Chyba při otevírání datového souboru!");
             }
             dataFile.seekp(m_superblock.getDataStartAddress() + (addressToStoreTo * fs::Superblock::CLUSTER_SIZE) + indexInCluster, std::ios_base::beg);
+            long pos = dataFile.tellp();
             dataFile.write((char*)&directoryItem, sizeof(fs::DirectoryItem));
+            dataFile.close();
         } else {
             /// Entire direct link is full, we save into next direct or indirect
             if (m_currentDirInode.getFirstFreeDirectLink() < m_currentDirInode.getDirectLinks().size()) {
@@ -335,7 +345,7 @@ void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) 
                         addressToStoreTo = getFreeDataBlock();
                         saveDirItemToIndex(directoryItem, addressToStoreTo);
 
-                        std::ofstream dataFile(m_dataFileName, std::ios::app);
+                        std::ofstream dataFile(m_dataFileName, std::ios::out | std::ios::app | std::ios::binary);
                         if (!dataFile) {
                             throw std::ios_base::failure("Chyba při otevírání datového souboru!");
                         }
@@ -350,7 +360,7 @@ void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) 
 
                             int32_t newIndirectLink = getFreeDataBlock();
                             m_currentDirInode.addIndirectLink(newIndirectLink);
-                            std::ofstream dataFile(m_dataFileName, std::ios::app);
+                            std::ofstream dataFile(m_dataFileName, std::ios::out | std::ios::binary | std::ios::app);
                             if (!dataFile) {
                                 throw std::ios_base::failure("Chyba při otevírání datového souboru!");
                             }
@@ -369,7 +379,7 @@ void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) 
 
                     int32_t newIndirectLink = getFreeDataBlock();
                     m_currentDirInode.addIndirectLink(newIndirectLink);
-                    std::ofstream dataFile(m_dataFileName, std::ios::app);
+                    std::ofstream dataFile(m_dataFileName, std::ios::out | std::ios::binary | std::ios::app);
                     if (!dataFile) {
                         throw std::ios_base::failure("Chyba při otevírání datového souboru!");
                     }
@@ -410,7 +420,7 @@ void FileSystem::readDirItemsIndirect(const fs::Inode &directory, std::vector<fs
         throw std::invalid_argument("Předaný inode nereprezentuje adresář");
     }
 
-    std::ifstream dataFile(m_dataFileName, std::ios::binary);
+    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při čtení dat");
     }
@@ -423,9 +433,9 @@ void FileSystem::readDirItemsIndirect(const fs::Inode &directory, std::vector<fs
 
         for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(int32_t)) {
             int32_t directLink;
-            dataFile.seekg(m_superblock.getDataStartAddress() + indirectLink, std::ios_base::beg);
+            dataFile.seekg(m_superblock.getDataStartAddress() + (indirectLink * fs::Superblock::CLUSTER_SIZE) + i, std::ios_base::beg);
             dataFile.read((char*)&directLink, sizeof(int32_t));
-            if (directLink != fs::EMPTY_LINK) {
+            if (directLink != fs::EMPTY_LINK) { //TODO markovda there cannot be an empty link value in the data file atm, fix
                 links.push_back(directLink);
             }
         }
@@ -440,14 +450,14 @@ void FileSystem::readDirItemsIndirect(const fs::Inode &directory, std::vector<fs
 }
 
 void FileSystem::readDirItems(const std::vector<int32_t> &indexList, std::vector<fs::DirectoryItem> &directoryItems) {
-    std::ifstream dataFile(m_dataFileName, std::ios::binary);
+    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při čtení ze souboru");
     }
 
     for (const auto& index : indexList) {
         for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(fs::DirectoryItem)) {
-            dataFile.seekg(m_superblock.getDataStartAddress() + i,
+            dataFile.seekg(m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE) + i,
                            std::ios_base::beg);
 
             fs::DirectoryItem dirItem;
@@ -461,7 +471,7 @@ void FileSystem::readDirItems(const std::vector<int32_t> &indexList, std::vector
 }
 
 fs::Inode FileSystem::findInode(const int inodeId) {
-    std::ifstream dataFile(m_dataFileName, std::ios::binary);
+    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při čtení ze souboru");
     }
@@ -491,7 +501,7 @@ void FileSystem::saveInode(const fs::Inode &inode) {
         throw std::invalid_argument("Nelze uložit i-uzel bez unikátního ID");
     }
 
-    std::ofstream dataFile(m_dataFileName, std::ios::app);
+    std::ofstream dataFile(m_dataFileName, std::ios::out | std::ios::binary | std::ios::app);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
@@ -515,7 +525,7 @@ std::vector<int32_t> FileSystem::getFreeDataBlocks(const std::size_t count) cons
 }
 
 void FileSystem::saveFileData(const fs::ClusteredFileData& clusteredData, const std::vector<int32_t>& dataClusterIndexes) {
-    std::ofstream dataFile(m_dataFileName, std::ios::app);
+    std::ofstream dataFile(m_dataFileName, std::ios::out | std::ios::binary | std::ios::app);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
@@ -554,7 +564,7 @@ void FileSystem::saveFileData(const fs::ClusteredFileData& clusteredData, const 
 }
 
 void FileSystem::updateInodeBitmap() {
-    std::ofstream dataFile(m_dataFileName, std::ios::app);
+    std::ofstream dataFile(m_dataFileName, std::ios::out | std::ios::binary | std::ios::app);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
@@ -563,7 +573,7 @@ void FileSystem::updateInodeBitmap() {
 }
 
 void FileSystem::updateDataBitmap() {
-    std::ofstream dataFile(m_dataFileName, std::ios::app);
+    std::ofstream dataFile(m_dataFileName, std::ios::out | std::ios::binary | std::ios::app);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
@@ -572,7 +582,7 @@ void FileSystem::updateDataBitmap() {
 }
 
 size_t FileSystem::getFreeDirItemDataBlockSubindex(int32_t dirItemDataBlockSubindex) {
-    std::ifstream dataFileR(m_dataFileName, std::ios::app);
+    std::ifstream dataFileR(m_dataFileName, std::ios::in | std::ios::app);
     if (!dataFileR) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
@@ -595,7 +605,7 @@ size_t FileSystem::getFreeDirItemDataBlockSubindex(int32_t dirItemDataBlockSubin
 }
 
 size_t FileSystem::getFreeIndirectLinkDataBlockSubindex(int32_t indirectLinkDatablockIndex) {
-    std::ifstream dataFileR(m_dataFileName, std::ios::app);
+    std::ifstream dataFileR(m_dataFileName, std::ios::in | std::ios::app);
     if (!dataFileR) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
@@ -618,7 +628,7 @@ size_t FileSystem::getFreeIndirectLinkDataBlockSubindex(int32_t indirectLinkData
 }
 
 void FileSystem::saveDirItemToIndex(const fs::DirectoryItem &directoryItem, const int32_t index) {
-    std::ofstream dataFileW(m_dataFileName, std::ios::app);
+    std::ofstream dataFileW(m_dataFileName, std::ios::out | std::ios::binary | std::ios::app);
     if (!dataFileW) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }

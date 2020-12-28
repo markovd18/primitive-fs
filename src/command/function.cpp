@@ -48,7 +48,7 @@ void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSyst
 
     const auto hddPath = parameters.at(0);
 
-    std::ifstream hddFile(hddPath, std::ios_base::binary);
+    std::ifstream hddFile(hddPath, std::ios::in | std::ios_base::binary);
     if (!hddFile) {
         std::cout << fnct::FNF_SOURCE << '\n';
         return;
