@@ -2,6 +2,7 @@
 // Author: markovd@students.zcu.cz
 //
 
+#include <fstream>
 #include "structures.h"
 
 namespace fs {
@@ -77,6 +78,40 @@ namespace fs {
         return m_inodeCount;
     }
 
+    void Superblock::load(std::ifstream &dataFile, const size_t address) {
+        if (!dataFile.is_open()) {
+            throw std::invalid_argument("Předaný datový soubor není otevřen ke čtení");
+        }
+
+        dataFile.seekg(address, std::ios_base::beg);
+        dataFile.read(m_signature.data(), SIGNATURE_LENGTH);
+        dataFile.read(m_volumeDescription.data(), VOLUME_DESC_LENGTH);
+        dataFile.read((char*)&m_diskSize, sizeof(m_diskSize));
+        dataFile.read((char*)&m_inodeCount, sizeof(m_inodeCount));
+        dataFile.read((char*)&m_clusterCount, sizeof(m_clusterCount));
+        dataFile.read((char*)&m_inodeBitmapStartAddress, sizeof(m_inodeBitmapStartAddress));
+        dataFile.read((char*)&m_dataBitmapStartAddress, sizeof(m_dataBitmapStartAddress));
+        dataFile.read((char*)&m_inodeStartAddress, sizeof(m_inodeStartAddress));
+        dataFile.read((char*)&m_dataStartAddress, sizeof(m_dataStartAddress));
+    }
+
+    void Superblock::save(std::ofstream &dataFile, const size_t address) const {
+        if (!dataFile.is_open()) {
+            throw std::invalid_argument("Předaný datový soubor není otevřen k zápisu");
+        }
+
+        dataFile.seekp(address, std::ios_base::beg);
+        dataFile.write(m_signature.data(), SIGNATURE_LENGTH);
+        dataFile.write(m_volumeDescription.data(), VOLUME_DESC_LENGTH);
+        dataFile.write((char*)&m_diskSize, sizeof(m_diskSize));
+        dataFile.write((char*)&m_inodeCount, sizeof(m_inodeCount));
+        dataFile.write((char*)&m_clusterCount, sizeof(m_clusterCount));
+        dataFile.write((char*)&m_inodeBitmapStartAddress, sizeof(m_inodeBitmapStartAddress));
+        dataFile.write((char*)&m_dataBitmapStartAddress, sizeof(m_dataBitmapStartAddress));
+        dataFile.write((char*)&m_inodeStartAddress, sizeof(m_inodeStartAddress));
+        dataFile.write((char*)&m_dataStartAddress, sizeof(m_dataStartAddress));
+    }
+
 
     DirectoryItem::DirectoryItem(const std::string &itemName, const int32_t inodeId) : m_inodeId(inodeId), m_itemName(){
         if (itemName.length() > 12) {
@@ -109,6 +144,26 @@ namespace fs {
             }
         }
         return DIR_ITEM_NAME_LENGTH;
+    }
+
+    void DirectoryItem::save(std::ofstream &dataFile, size_t address) const {
+        if (!dataFile.is_open()) {
+            throw std::invalid_argument("Předaný datový soubor není otevřený k zápisu");
+        }
+
+        dataFile.seekp(address, std::ios_base::beg);
+        dataFile.write((char*)&m_inodeId, sizeof(m_inodeId));
+        dataFile.write(m_itemName.data(), m_itemName.size());
+    }
+
+    void DirectoryItem::load(std::ifstream &dataFile, size_t address) {
+        if (!dataFile.is_open()) {
+            throw std::invalid_argument("Předaný datový soubor není otevřený ke čtení");
+        }
+
+        dataFile.seekg(address, std::ios_base::beg);
+        dataFile.read((char*)&m_inodeId, sizeof(m_inodeId));
+        dataFile.read((char*)m_itemName.data(), m_itemName.size());
     }
 
     Inode::Inode() {
@@ -197,6 +252,14 @@ namespace fs {
         }
 
         return container.size();
+    }
+
+    void Inode::save(std::ofstream &dataFile, size_t address) const {
+
+    }
+
+    void Inode::load(std::ifstream &dataFile, size_t address) {
+
     }
 
     bool Inode::addDirectLink(int32_t address) {

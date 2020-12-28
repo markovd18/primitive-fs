@@ -10,6 +10,7 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <fstream>
 #include "../utils/ObjectNotFound.h"
 
 /**
@@ -81,6 +82,9 @@ namespace fs {
         [[nodiscard]] int32_t getDataStartAddress() const;
         /** Getter for the maximum i-node count. */
         [[nodiscard]] int32_t getInodeCount() const;
+
+        void save(std::ofstream& dataFile, size_t address) const;
+        void load(std::ifstream& dataFile, size_t address);
     };
 
     class DataLinks;
@@ -139,6 +143,9 @@ namespace fs {
         [[nodiscard]] int32_t getLastFilledIndirectLinkValue() const;
 
         [[nodiscard]] int32_t getFirstFreeIndirectLink() const;
+
+        void save(std::ofstream& dataFile, size_t address) const;
+        void load(std::ifstream& dataFile, size_t address);
 
         bool addDirectLink(int32_t index);
 
@@ -238,6 +245,9 @@ namespace fs {
         [[nodiscard]] int32_t getInodeId() const;
         /** Getter for item name. */
         [[nodiscard]] const std::array<char, DIR_ITEM_NAME_LENGTH> &getItemName() const;
+
+        void save(std::ofstream& dataFile, size_t address) const;
+        void load(std::ifstream& dataFile, size_t address);
     };
 
     /**
@@ -317,6 +327,24 @@ namespace fs {
 
         [[nodiscard]] size_t getLength() const {
             return m_length;
+        }
+
+        void save(std::ofstream& dataFile, const size_t address) const {
+            if (!dataFile.is_open()) {
+                throw std::invalid_argument("Předaný datový soubor není otevřen pro zápis");
+            }
+
+            dataFile.seekp(address, std::ios_base::beg);
+            dataFile.write((char*)m_bitmap, m_length);
+        }
+
+        void load(std::ifstream& dataFile, const size_t address) {
+            if (!dataFile.is_open()) {
+                throw std::invalid_argument("Předaný datový soubor není otevřen ke čtení");
+            }
+
+            dataFile.seekg(address, std::ios_base::beg);
+            dataFile.read((char*)m_bitmap, m_length);
         }
 
         /**
