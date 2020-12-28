@@ -328,17 +328,54 @@ private: //private methods
      * Checks given indirect link data block containing direct links with directory items for a free sub-index, where next
      * direct link could be stores
      *
-     * @param indirectLinkDatablockIndex index of indirect link
+     * @param indirectLinkDataBlockIndex index of indirect link
      * @return free sub-index in given data block or size of a data block
      */
-    size_t getFreeIndirectLinkDataBlockSubindex(int32_t indirectLinkDatablockIndex);
+    size_t getFreeIndirectLinkDataBlockSubindex(int32_t indirectLinkDataBlockIndex);
     /**
-     * Saves directory item into given index
-     *
+     * @brief Saves directory item into given index
      * @param directoryItem directory item to save
      * @param offset index to save directory item to
      */
     void saveDirItemToIndex(const fs::DirectoryItem& directoryItem, int32_t offset);
+
+    /**
+     * Saves given directory item to any free data block and adds direct link to current directory inode.
+     * @param directoryItem directory item to store to current directory
+     * @return true if successfully added direct link, otherwise false
+     */
+    bool saveDirItemToFreeDirectLink(const fs::DirectoryItem &directoryItem);
+
+    /**
+     * @brief Saves given directory item to indirect link of current directory.
+     * @param directoryItem directory item to store
+     *
+     * Checks for indirect links of current directory. If all indirect links are full, throws @a ObjectNotFound.
+     * If the last filled indirect link is not completely full, checks if the last direct link in that indirect link is full.
+     * If not, saves given directory item there, otherwise creates new direct links, stores directory item there and new direct link
+     * stores into this indirect link. If last filled indirect link is completely full and there is space for new indirect link,
+     * creates new indirect link, new direct link to store directory item, direct link saves into indirect link and adds new indirect
+     * link to current directory.
+     */
+    void saveDirItemToCurrentIndirect(const fs::DirectoryItem &directoryItem);
+
+    /**
+     * @brief Saves given directory item into the data file to given address
+     * @param directoryItem directory item to save
+     * @param address address to save directory item to
+     *
+     * This method only saves the directory item and does NOTHING else. Setting bit in bitmap has to be done separately.
+     */
+    void saveDirItemToAddress(const fs::DirectoryItem &directoryItem, int32_t address);
+
+    /**
+     * @brief Saves given directory item to new free indirect link
+     * @param directoryItem directory item to save
+     *
+     * Creates new direct link, saves directory item into it and saves the direct link into new indirect link. New indirect
+     * link is added to current directory i-node.
+     */
+    void saveDirItemToFreeIndirectLink(const fs::DirectoryItem &directoryItem);
 };
 
 
