@@ -40,8 +40,7 @@ bool FileSystem::initialize(fs::Superblock &sb) {
     fs::Inode rootInode(0, true, 0);
     rootInode.addDirectLink(0); /// We add direct link to the first data block, where the root folder data will be
 
-    dataFile.seekp(m_superblock.getInodeStartAddress(), std::ios_base::beg);
-    dataFile.write((char*)&rootInode, sizeof(rootInode));
+    rootInode.save(dataFile, m_superblock.getInodeStartAddress());
     /// We fill the empty i-node space
     for (int i = 0; i < sb.getInodeCount() - 1; ++i) {
         dataFile.write("\0", sizeof(fs::Inode));
@@ -92,8 +91,7 @@ bool FileSystem::initializeFromExisting() {
     /// By default we start in the root directory.
     m_currentDirPath = "/";
     /// Load the inode representing current directory
-    dataFile.seekg(m_superblock.getInodeStartAddress(), std::ios_base::beg);
-    dataFile.read((char*)&m_currentDirInode, sizeof(m_currentDirInode));
+    m_currentDirInode.load(dataFile, m_superblock.getInodeStartAddress());
     std::cout << "Initialized from existing file!\n";
     /// In the end we are successfully initialized
     m_initialized = true;
@@ -127,8 +125,7 @@ bool FileSystem::initializeInodeBitmap(std::ofstream& dataFile) {
     m_inodeBitmap = std::move(fs::Bitmap(m_superblock.getInodeCount()));
     m_inodeBitmap.setIndexFilled(0);
     m_inodeBitmap.save(dataFile, m_superblock.getInodeBitmapStartAddress());
-    return true;
-    //return writeBitmap(dataFile, m_inodeBitmap, m_superblock.getInodeBitmapStartAddress());
+    return !dataFile.bad();
 }
 
 bool FileSystem::initializeInodeBitmap(std::ifstream& dataFile) {
@@ -138,8 +135,7 @@ bool FileSystem::initializeInodeBitmap(std::ifstream& dataFile) {
 
     m_inodeBitmap = std::move(fs::Bitmap(m_superblock.getInodeCount()));
     m_inodeBitmap.load(dataFile, m_superblock.getInodeBitmapStartAddress());
-    return true;
-    //return readBitmap(dataFile, m_inodeBitmap, m_superblock.getInodeBitmapStartAddress());
+    return !dataFile.bad();
 }
 
 bool FileSystem::initializeDataBitmap(std::ofstream& dataFile) {
@@ -150,8 +146,7 @@ bool FileSystem::initializeDataBitmap(std::ofstream& dataFile) {
     m_dataBitmap = std::move(fs::Bitmap(m_superblock.getInodeStartAddress() - m_superblock.getDataBitmapStartAddress()));
     m_dataBitmap.setIndexFilled(0);
     m_dataBitmap.save(dataFile, m_superblock.getDataBitmapStartAddress());
-    return true;
-    //return writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
+    return !dataFile.bad();
 }
 
 bool FileSystem::initializeDataBitmap(std::ifstream& dataFile) {
@@ -160,35 +155,7 @@ bool FileSystem::initializeDataBitmap(std::ifstream& dataFile) {
     }
 
     m_dataBitmap = std::move(fs::Bitmap(m_superblock.getInodeStartAddress() - m_superblock.getDataBitmapStartAddress()));
-    return readBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
-}
-
-bool FileSystem::writeBitmap(std::ofstream& dataFile, const fs::Bitmap& bitmap, int offset) {
-    /// If the output stream is closed, we cannot write anything, returning fail state
-    if (!dataFile.is_open()) {
-        return false;
-    }
-    /// If the bitmap had zero length, we will not write anything, returning success
-    if (bitmap.getLength() == 0) {
-        return true;
-    }
-
-    /// We set the position relative to beginning of the file and write
-    dataFile.seekp(offset, std::ios_base::beg);
-    dataFile.write((char*)bitmap.getBitmap(), bitmap.getLength());
-
-    return !dataFile.bad();
-}
-
-bool FileSystem::readBitmap(std::ifstream &dataFile, fs::Bitmap &bitmap, int offset) {
-    /// If the input stream is closed, we cannot read anything, returning fail state
-    if (!dataFile.is_open()) {
-        return false;
-    }
-
-    dataFile.seekg(offset, std::ios_base::beg);
-    dataFile.read((char*)bitmap.getBitmap(), bitmap.getLength());
-
+    m_dataBitmap.load(dataFile, m_superblock.getDataBitmapStartAddress());
     return !dataFile.bad();
 }
 
@@ -285,12 +252,7 @@ void FileSystem::getRootInode(fs::Inode &rootInode) {
         return;
     }
 
-    fs::Inode tmp = rootInode;
-    dataFile.seekg(m_superblock.getInodeStartAddress(), std::ios_base::beg);
-    dataFile.read((char*)&rootInode, sizeof(rootInode));
-    if (dataFile.bad()) {
-        rootInode = tmp;
-    }
+    rootInode.load(dataFile, m_superblock.getInodeStartAddress());;
 }
 
 std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const std::filesystem::path &dirPath) {
@@ -425,10 +387,7 @@ fs::Inode FileSystem::findInode(const int inodeId) {
         for (int j = 7; j >= 0; --j) {
             /// If the bit is 1, there is inode on this index
             if ((m_inodeBitmap.getBitmap()[i] >> j) & 0b1) {
-                dataFile.seekg(m_superblock.getInodeStartAddress() + (i * (7 - j) * sizeof(fs::Inode)),
-                               std::ios_base::beg);
-
-                dataFile.read((char*) &inode, sizeof(inode));
+                inode.load(dataFile, m_superblock.getInodeStartAddress() + (i * (7 - j) * sizeof(fs::Inode)));
                 if (inode.getInodeId() == inodeId) {
                     return inode;
                 }
@@ -450,14 +409,11 @@ void FileSystem::saveInode(const fs::Inode &inode) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
 
-    /// Unique ID of each i-node also represents it's index in the i-node storage, so we don't need to iterate through
-    /// the bitmap again
-    dataFile.seekp(m_superblock.getInodeStartAddress() + (inode.getInodeId() * sizeof(fs::Inode)), std::ios_base::beg);
-    dataFile.write((char*)&inode, sizeof(fs::Inode));
+    inode.save(dataFile, m_superblock.getInodeStartAddress() + (inode.getInodeId() * sizeof(fs::Inode)));
 
     /// Updating the bitmap
     m_inodeBitmap.setIndexFilled(inode.getInodeId());
-    writeBitmap(dataFile, m_inodeBitmap, m_superblock.getInodeBitmapStartAddress());
+    m_inodeBitmap.save(dataFile, m_superblock.getInodeBitmapStartAddress());
 }
 
 int32_t FileSystem::getFreeDataBlock() const {
@@ -504,7 +460,7 @@ void FileSystem::saveFileData(const fs::ClusteredFileData& clusteredData, const 
     }
 
     /// In the end we need to save the changes we made to the bitmap
-    writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
+    m_dataBitmap.save(dataFile, m_superblock.getDataBitmapStartAddress());
 }
 
 void FileSystem::updateInodeBitmap() {
@@ -513,7 +469,7 @@ void FileSystem::updateInodeBitmap() {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
 
-    writeBitmap(dataFile, m_inodeBitmap, m_superblock.getInodeBitmapStartAddress());
+    m_inodeBitmap.save(dataFile, m_superblock.getInodeBitmapStartAddress());
 }
 
 void FileSystem::updateDataBitmap() {
@@ -522,7 +478,7 @@ void FileSystem::updateDataBitmap() {
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
 
-    writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
+    m_dataBitmap.save(dataFile, m_superblock.getDataBitmapStartAddress());
 }
 
 size_t FileSystem::getFreeDirItemDataBlockSubindex(int32_t dirItemDataBlockSubindex) {
@@ -535,8 +491,7 @@ size_t FileSystem::getFreeDirItemDataBlockSubindex(int32_t dirItemDataBlockSubin
     size_t offset = m_superblock.getDataStartAddress() + (dirItemDataBlockSubindex * fs::Superblock::CLUSTER_SIZE);
     while (indexInCluster < fs::Superblock::CLUSTER_SIZE) {
         fs::DirectoryItem dirItem;
-        dataFileR.seekg(offset + indexInCluster, std::ios_base::beg);
-        dataFileR.read((char*)&dirItem, sizeof(fs::DirectoryItem));
+        dirItem.load(dataFileR, offset + indexInCluster);
         if (dirItem.getItemName()[0] == '\0') {
             return indexInCluster;
         }
@@ -583,7 +538,7 @@ void FileSystem::saveDirItemToIndex(const fs::DirectoryItem &directoryItem, cons
     dataFile.write("\0", fs::Superblock::CLUSTER_SIZE - sizeof(directoryItem));
 
     m_dataBitmap.setIndexFilled(index);
-    writeBitmap(dataFile, m_dataBitmap, m_superblock.getDataBitmapStartAddress());
+    m_dataBitmap.save(dataFile, m_superblock.getDataBitmapStartAddress());
 }
 
 void FileSystem::saveDirItemToAddress(const fs::DirectoryItem& directoryItem, const int32_t address) {

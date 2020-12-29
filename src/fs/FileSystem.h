@@ -251,28 +251,6 @@ private: //private methods
      * @return true when successfully read data bitmap, otherwise false
      */
     bool initializeDataBitmap(std::ifstream& dataFile);
-    /**
-     * Writes bitmap into the data file with the offset relative to the start of the file system.
-     * Requires open output stream to data file passed. If the output stream is closed, returns a failure.
-     *
-     * @param dataFile open output file stream
-     * @param bitmap bitmap to write
-     * @param offset offset relative to the start of the file system
-     * @return true when successfully written bitmap, otherwise false
-     */
-    bool writeBitmap(std::ofstream& dataFile, const fs::Bitmap& bitmap, int offset);
-    /**
-     * Reads bitmap from the data file from the position relative to the start of the file system with given offset.
-     * Requires open input stream from data file passed. If the input stream is closed, returns a failure. Passed bitmap has to be
-     * already initialized into default state - array pointer has to be initialized and length has to be set. Length attribute will be used
-     * to determine how many bytes to read from the data file.
-     *
-     * @param dataFile open input file stream
-     * @param bitmap bitmap to read into
-     * @param offset offset relative to the start of the file system
-     * @return true when successfully read bitmap, otherwise false
-     */
-    bool readBitmap(std::ifstream& dataFile, fs::Bitmap& bitmap, int offset);
 
     /**
      * Finds the i-node of root directory and stores it into the inode passed as a parameter.
