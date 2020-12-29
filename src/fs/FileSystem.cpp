@@ -198,6 +198,43 @@ void FileSystem::createFile(const std::filesystem::path &path, const fs::FileDat
     m_currentDirPath = currentDir;
 }
 
+void FileSystem::removeFile(const std::filesystem::path &path) {
+    if (!path.has_filename()) {
+        throw std::invalid_argument("Předaná cesta nekončí názvem souboru");
+    }
+
+    std::string pathStr = path.string();
+    std::string pathNoFilename = pathStr.substr(0, pathStr.length() - path.filename().string().length());
+    /// We store current working directory, so we can return back in the end
+    const std::string currentDir = m_currentDirPath;
+    const fs::Inode currentInode = m_currentDirInode;
+
+    if (m_currentDirPath != pathNoFilename) {
+        /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
+        changeDirectory(pathNoFilename);
+    }
+
+    std::vector<fs::DirectoryItem> dirItems(getDirectoryItems(m_currentDirPath));
+    auto it = std::find_if(dirItems.begin(), dirItems.end(), [&path](const fs::DirectoryItem item) { return item.nameEquals(path.filename()); });
+    if (it == dirItems.end()) {
+        throw std::invalid_argument("Soubor s předaným názvem neexituje!");
+    }
+    /*
+    fs::Inode fileInode(findInode(it->getInodeId()));
+    for (const auto &directLink : fileInode.getDirectLinks()) {
+        m_dataBitmap.setIndexFree(directLink);
+    }
+
+    for (const auto &indirectLink : fileInode.getIndirectLinks()) {
+        m_dataBitmap.setIndexFree(indirectLink);
+    }
+
+    */
+    /// Returning back to the former directory
+    m_currentDirInode = currentInode;
+    m_currentDirPath = currentDir;
+}
+
 void FileSystem::changeDirectory(const std::filesystem::path& path) {
     if (path.empty()) {
         /// If no path is provided, we don't change anything and return.

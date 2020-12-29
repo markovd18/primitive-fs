@@ -49,5 +49,13 @@ namespace fnct {
      * @param fileSystem file system which we want to access
      */
     void ls(const std::vector<std::string>& parameters, FileSystem* fileSystem);
+
+    /**
+     * Removes file at the end of given path.
+     *
+     * @param parameters requires one parameter - path to existing file which is not directory
+     * @param fileSystem file system which we want to access
+     */
+    void rm(const std::vector<std::string>& parameters, FileSystem* fileSystem);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H

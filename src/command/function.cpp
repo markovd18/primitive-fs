@@ -126,3 +126,21 @@ void fnct::ls(const std::vector<std::string> &parameters, FileSystem *fileSystem
         std::cout << mark << dirItem.getItemName().data() << '\n';
     }
 }
+
+void fnct::rm(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.at(0).empty()) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    try {
+        fileSystem->removeFile(parameters.at(0));
+    } catch (const std::exception &ex) {
+        std::cout << fnct::PNF_DEST << '\n';
+    }
+}

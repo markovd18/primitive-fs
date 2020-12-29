@@ -101,6 +101,13 @@ public: //public methods
     void createFile(const std::filesystem::path& path, const fs::FileData& data);
 
     /**
+     * Removes file at the end of the given path in virtual file system.
+     *
+     * @param path path in virtual file system
+     */
+    void removeFile(const std::filesystem::path& path);
+
+    /**
      * Returns the current working directory.
      *
      * @return current working directory
