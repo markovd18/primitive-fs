@@ -215,13 +215,8 @@ void FileSystem::removeFile(const std::filesystem::path &path) {
         changeDirectory(pathNoFilename);
     }
 
-    std::vector<fs::DirectoryItem> dirItems(getDirectoryItems(m_currentDirPath));
-    auto it = std::find_if(dirItems.begin(), dirItems.end(), [&path](const fs::DirectoryItem item) { return item.nameEquals(path.filename()); });
-    if (it == dirItems.end()) {
-        throw std::invalid_argument("Soubor s předaným názvem neexituje!");
-    }
-
-    fs::Inode fileInode(findInode(it->getInodeId()));
+    fs::DirectoryItem directoryItem(removeDirectoryItem(path.filename()));
+    fs::Inode fileInode(findInode(directoryItem.getInodeId()));
     if (fileInode.isDirectory()) {
         throw std::invalid_argument("Soubor na předané cestě nelze smazat, protože je to složka");
     }
@@ -307,12 +302,7 @@ std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const std::filesyst
 }
 
 std::vector<fs::DirectoryItem> FileSystem::getDirectoryItems(const fs::Inode& directory) {
-
-    std::vector<fs::DirectoryItem> directoryItems;
-    readDirItemsDirect(directory, directoryItems);
-    readDirItemsIndirect(directory, directoryItems);
-
-    return directoryItems;
+    return readDirItems(getAllDirectLinks(directory));
 }
 
 void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) {
@@ -344,60 +334,13 @@ void FileSystem::saveDirItemIntoCurrent(const fs::DirectoryItem &directoryItem) 
 }
 
 
-void FileSystem::readDirItemsDirect(const fs::Inode &directory, std::vector<fs::DirectoryItem> &directoryItems) {
-    if (!directory.isDirectory()) {
-        throw std::invalid_argument("Předaný inode nereprezentuje adresář");
-    }
-
-    std::vector<int32_t> links;
-    for (const auto &link : directory.getDirectLinks()) {
-        if (link != fs::EMPTY_LINK) {
-            links.push_back(link);
-        }
-    }
-
-    readDirItems(links, directoryItems);
-}
-
-void FileSystem::readDirItemsIndirect(const fs::Inode &directory, std::vector<fs::DirectoryItem> &directoryItems) {
-    if (!directory.isDirectory()) {
-        throw std::invalid_argument("Předaný inode nereprezentuje adresář");
-    }
-
-    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
-    if (!dataFile) {
-        throw std::ios_base::failure("Chyba při čtení dat");
-    }
-
-    std::vector<int32_t> links;
-    for (const auto &indirectLink : directory.getIndirectLinks()) {
-        if (indirectLink == fs::EMPTY_LINK) {
-            continue;
-        }
-
-        for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(int32_t)) {
-            int32_t directLink;
-            dataFile.seekg(m_superblock.getDataStartAddress() + (indirectLink * fs::Superblock::CLUSTER_SIZE) + i, std::ios_base::beg);
-            dataFile.read((char*)&directLink, sizeof(directLink));
-            if (directLink != fs::EMPTY_LINK) {
-                links.push_back(directLink);
-            }
-        }
-    }
-
-    dataFile.close();
-    if (!dataFile) {
-        throw std::ios_base::failure("Chyba při uzavření datového souboru");
-    }
-
-    readDirItems(links, directoryItems);
-}
-
-void FileSystem::readDirItems(const std::vector<int32_t> &indexList, std::vector<fs::DirectoryItem> &directoryItems) {
+std::vector<fs::DirectoryItem> FileSystem::readDirItems(const std::vector<int32_t> &indexList) {
     std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při čtení ze souboru");
     }
+
+    std::vector<fs::DirectoryItem> directoryItems;
 
     for (const auto& index : indexList) {
         for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(fs::DirectoryItem)) {
@@ -409,6 +352,8 @@ void FileSystem::readDirItems(const std::vector<int32_t> &indexList, std::vector
             }
         }
     }
+
+    return directoryItems;
 }
 
 fs::Inode FileSystem::findInode(const int inodeId) {
@@ -662,16 +607,21 @@ void FileSystem::saveDirItemToFreeIndirectLink(const fs::DirectoryItem &director
 }
 
 void FileSystem::clearInodeData(const fs::Inode &inode) {
-    for (const auto &directLink : inode.getDirectLinks()) {
-        clearDataBlock(directLink);
+    for (const auto &directLink : getAllDirectLinks(inode)) {
+        m_dataBitmap.setIndexFree(directLink);
     }
 
     for (const auto &indirectLink : inode.getIndirectLinks()) {
-        clearDataBlock(indirectLink);
+        m_dataBitmap.setIndexFree(indirectLink);
     }
+
+    updateDataBitmap();
 
     m_inodeBitmap.setIndexFree(inode.getInodeId());
     updateInodeBitmap();
+
+    m_currentDirInode.setFileSize(m_currentDirInode.getFileSize() - inode.getFileSize());
+
 }
 
 void FileSystem::clearDataBlock(const int32_t dataBlockIndex) {
@@ -680,5 +630,66 @@ void FileSystem::clearDataBlock(const int32_t dataBlockIndex) {
 }
 
 fs::DirectoryItem FileSystem::removeDirectoryItem(const std::string &filename) {
+    return removeDirItem(filename, getAllDirectLinks(m_currentDirInode));
+}
 
+std::vector<int32_t> FileSystem::getAllDirectLinks(const fs::Inode &inode) {
+    std::vector<int32_t> directLinks;
+
+    for (const auto &directLink : inode.getDirectLinks()) {
+        if (directLink != fs::EMPTY_LINK) {
+            directLinks.push_back(directLink);
+        }
+    }
+
+    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
+    if (!dataFile) {
+        throw std::ios_base::failure("Chyba při čtení dat");
+    }
+
+    for (const auto &indirectLink : inode.getIndirectLinks()) {
+        if (indirectLink == fs::EMPTY_LINK) {
+            continue;
+        }
+
+        for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(int32_t)) {
+            int32_t directLink;
+            dataFile.seekg(m_superblock.getDataStartAddress() + (indirectLink * fs::Superblock::CLUSTER_SIZE) + i, std::ios_base::beg);
+            dataFile.read((char*)&directLink, sizeof(directLink));
+            if (directLink != fs::EMPTY_LINK) {
+                directLinks.push_back(directLink);
+            }
+        }
+    }
+
+    return directLinks;
+}
+
+fs::DirectoryItem FileSystem::removeDirItem(const std::string &filename, const std::vector<int32_t> &directLinks) {
+    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
+    if (!dataFile) {
+        throw std::ios::failure("Chyba při otevírání datového souboru!");
+    }
+
+    for (const auto& index : directLinks) {
+        for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(fs::DirectoryItem)) {
+            fs::DirectoryItem dirItem;
+            dirItem.load(dataFile, m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE) + i);
+            if (dirItem.nameEquals(filename)) {
+                std::fstream dataFileW(m_dataFileName, std::ios::out | std::ios::in | std::ios::binary);
+                if (!dataFileW) {
+                    throw std::ios::failure("Chyba při otevírání datového souboru");
+                }
+
+                dataFileW.seekp(m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE) + i, std::ios::beg);
+                for (int j = 0; j < sizeof(fs::DirectoryItem); ++j) {
+                    dataFileW.put('\0');
+                }
+
+                return dirItem;
+            }
+        }
+    }
+
+    throw pfs::ObjectNotFound("DirectoryItem s názvem " + filename + " nenalezen");
 }
