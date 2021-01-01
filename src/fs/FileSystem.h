@@ -170,6 +170,14 @@ public: //public methods
     std::vector<fs::DirectoryItem> getDirectoryItems(const std::filesystem::path& dirPath);
 
     /**
+     * @brief Removes directory item with given file name from current directory.
+     * @param filename
+     * @return removed directory item
+     * @throw ObjectNotFound if current directory doesn't contain a directory item with given name
+     */
+    fs::DirectoryItem removeDirectoryItem(const std::string& filename);
+
+    /**
      * Returns all directory items of directory, represented by given inode. If inode doesn't represent folder, throws @a invalid_argument
      *
      * @param directory inode representing the directory
@@ -223,7 +231,7 @@ private: //private methods
      * @param superblock superblock to write
      * @return true when successfully written superblock, otherwise false
      */
-    bool writeSuperblock(std::ofstream& dataFile, fs::Superblock& superblock);
+    bool writeSuperblock(std::fstream& dataFile, fs::Superblock& superblock);
     /**
      * Initializes and writes bitmap of inodes into the file-system. Bitmap corresponds to a filesystem with
      * root folder only. Requires open output stream to data file passed. If the output stream is closed,
@@ -232,7 +240,7 @@ private: //private methods
      * @param dataFile open output file stream
      * @return true when successfully written bitmap, otherwise false
      */
-    bool initializeInodeBitmap(std::ofstream& dataFile);
+    bool initializeInodeBitmap(std::fstream& dataFile);
     /**
      * Initializes inode bitmap from existing data file and loads it into memory. Requires open input stream from existing
      * data file passed. If the input stream is closed, returns a failure. If the reading process fails, throws an exception.
@@ -249,7 +257,7 @@ private: //private methods
      * @param dataFile open output file stream
      * @return true when successfully written bitmap, otherwise false
      */
-    bool initializeDataBitmap(std::ofstream& dataFile);
+    bool initializeDataBitmap(std::fstream& dataFile);
     /**
      * Initializes data bitmap from existing data file and loads it into memory. Requires open input stream from existing
      * data file passed. If the input stream is closed, returns a failure. If the reading process fails, throws an exception.
@@ -268,7 +276,7 @@ private: //private methods
 
     /**
      * Reads all directory items of passed directory i-node from it's direct links and stores them into passed vector of directory items.
-     * If passed argument is not a directory, throws.
+     * If passed argument is not a directory, throws invalid_argument
      *
      * @param directory directory which we want to read
      * @param directoryItems vector to store directory items into
@@ -277,7 +285,7 @@ private: //private methods
 
     /**
      * Reads all directory items of passed directory i-node from it's indirect links and stores them into passed vector of directory items.
-     * If passed argument is not a directory, throws.
+     * If passed argument is not a directory, throws invalid_argument
      *
      * @param directory directory which we want to read
      * @param directoryItems vector to store directory items into
@@ -361,6 +369,19 @@ private: //private methods
      * link is added to current directory i-node.
      */
     void saveDirItemToFreeIndirectLink(const fs::DirectoryItem &directoryItem);
+
+    /**
+     * Clears all inode data from this file system, including inode itself and it's direct and indirect links.
+     *
+     * @param inode inode to remove from file system
+     */
+    void clearInodeData(const fs::Inode& inode);
+    /**
+     * Clears data block index in data bitmap. Only sets given index as free, but does not delete or modify memory at that index.
+     *
+     * @param dataBlockIndex index to be set as free
+     */
+    void clearDataBlock(int32_t dataBlockIndex);
 };
 
 

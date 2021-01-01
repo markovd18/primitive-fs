@@ -96,7 +96,7 @@ namespace fs {
         dataFile.read((char*)&m_dataStartAddress, sizeof(m_dataStartAddress));
     }
 
-    void Superblock::save(std::ofstream &dataFile, const size_t address) const {
+    void Superblock::save(std::fstream &dataFile, const size_t address) const {
         if (!dataFile.is_open()) {
             throw std::invalid_argument("Předaný datový soubor není otevřen k zápisu");
         }
@@ -111,6 +111,7 @@ namespace fs {
         dataFile.write((char*)&m_dataBitmapStartAddress, sizeof(m_dataBitmapStartAddress));
         dataFile.write((char*)&m_inodeStartAddress, sizeof(m_inodeStartAddress));
         dataFile.write((char*)&m_dataStartAddress, sizeof(m_dataStartAddress));
+        dataFile.flush();
     }
 
 
@@ -147,7 +148,7 @@ namespace fs {
         return DIR_ITEM_NAME_LENGTH;
     }
 
-    void DirectoryItem::save(std::ofstream &dataFile, size_t address) const {
+    void DirectoryItem::save(std::fstream &dataFile, size_t address) const {
         if (!dataFile.is_open()) {
             throw std::invalid_argument("Předaný datový soubor není otevřený k zápisu");
         }
@@ -157,6 +158,7 @@ namespace fs {
         dataFile.seekp(address, std::ios_base::beg);
         dataFile.write((char*)&m_inodeId, sizeof(m_inodeId));
         dataFile.write(m_itemName.data(), m_itemName.size());
+        dataFile.flush();
     }
 
     void DirectoryItem::load(std::ifstream &dataFile, size_t address) {
@@ -259,7 +261,7 @@ namespace fs {
         return container.size();
     }
 
-    void Inode::save(std::ofstream &dataFile, size_t address) const {
+    void Inode::save(std::fstream &dataFile, size_t address) const {
         if (!dataFile) {
             throw std::invalid_argument("Předaný datový soubor není otevřen k zápisu");
         }
@@ -270,8 +272,9 @@ namespace fs {
         dataFile.write((char*)&m_isDirectory, sizeof(m_isDirectory));
         dataFile.write((char*)&m_references, sizeof(m_references));
         dataFile.write((char*)&m_fileSize, sizeof(m_fileSize));
-        dataFile.write((char*)m_directLinks.data(), m_directLinks.size());
-        dataFile.write((char*)m_indirectLinks.data(), m_indirectLinks.size());
+        dataFile.write((char*)m_directLinks.data(), (m_directLinks.size() * sizeof(int32_t)));
+        dataFile.write((char*)m_indirectLinks.data(), (m_indirectLinks.size() * sizeof(int32_t)));
+        dataFile.flush();
     }
 
     void Inode::load(std::ifstream &dataFile, size_t address) {
@@ -284,8 +287,8 @@ namespace fs {
         dataFile.read((char*)&m_isDirectory, sizeof(m_isDirectory));
         dataFile.read((char*)&m_references, sizeof(m_references));
         dataFile.read((char*)&m_fileSize, sizeof(m_fileSize));
-        dataFile.read((char*)m_directLinks.data(), m_directLinks.size());
-        dataFile.read((char*)m_indirectLinks.data(), m_indirectLinks.size());
+        dataFile.read((char*)m_directLinks.data(), (m_directLinks.size() * sizeof(int32_t)));
+        dataFile.read((char*)m_indirectLinks.data(), (m_indirectLinks.size() * sizeof(int32_t)));
         std::cout << "Loaded Inode: InodeId=" << m_inodeId << ", IsDirectory=" << m_isDirectory << ", FileSize=" << m_fileSize
                   << " from address " << address << std::endl;
     }
