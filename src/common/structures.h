@@ -10,6 +10,8 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <iostream>
 #include "../utils/ObjectNotFound.h"
 
 /**
@@ -81,6 +83,9 @@ namespace fs {
         [[nodiscard]] int32_t getDataStartAddress() const;
         /** Getter for the maximum i-node count. */
         [[nodiscard]] int32_t getInodeCount() const;
+
+        void save(std::fstream& dataFile, size_t address) const;
+        void load(std::ifstream& dataFile, size_t address);
     };
 
     class DataLinks;
@@ -139,6 +144,9 @@ namespace fs {
         [[nodiscard]] int32_t getLastFilledIndirectLinkValue() const;
 
         [[nodiscard]] int32_t getFirstFreeIndirectLink() const;
+
+        void save(std::fstream& dataFile, size_t address) const;
+        void load(std::ifstream& dataFile, size_t address);
 
         bool addDirectLink(int32_t index);
 
@@ -238,6 +246,9 @@ namespace fs {
         [[nodiscard]] int32_t getInodeId() const;
         /** Getter for item name. */
         [[nodiscard]] const std::array<char, DIR_ITEM_NAME_LENGTH> &getItemName() const;
+
+        void save(std::fstream& dataFile, size_t address) const;
+        void load(std::ifstream& dataFile, size_t address);
     };
 
     /**
@@ -319,6 +330,27 @@ namespace fs {
             return m_length;
         }
 
+        void save(std::fstream& dataFile, const size_t address) const {
+            if (!dataFile.is_open()) {
+                throw std::invalid_argument("Předaný datový soubor není otevřen pro zápis");
+            }
+
+            std::cout << "Saving Bitmap: Length=" << m_length << ", Data=" << m_bitmap << "to address " << address << std::endl;
+            dataFile.seekp(address, std::ios_base::beg);
+            dataFile.write((char*)m_bitmap, m_length);
+            dataFile.flush();
+        }
+
+        void load(std::ifstream& dataFile, const size_t address) {
+            if (!dataFile.is_open()) {
+                throw std::invalid_argument("Předaný datový soubor není otevřen ke čtení");
+            }
+
+            dataFile.seekg(address, std::ios_base::beg);
+            dataFile.read((char*)m_bitmap, m_length);
+            std::cout << "Loaded Bitmap: Length=" << m_length << ", Data=" << m_bitmap << "from address " << address << std::endl;
+        }
+
         /**
          * Returns given number of free indexes. Throws ObjectNotFound if none or less than given number of indexes is found.
          *
@@ -390,6 +422,22 @@ namespace fs {
 
             std::size_t subIndex =  7 - (index % 8);
             m_bitmap[bitmapIndex] &= ~(1UL << subIndex);
+        }
+
+        /**
+         * Checks if index-th bit is set to 1
+         *
+         * @param index index to be checked
+         * @return true if index is filled, otherwise false
+         */
+        [[nodiscard]] bool isIndexFilled(const std::size_t index) const {
+            std::size_t bitmapIndex = index / 8;
+            if (bitmapIndex >= m_length) {
+                return false;
+            }
+
+            std::size_t subIndex = 7 - (index % 8);
+            return (m_bitmap[bitmapIndex] >> subIndex) & 0b1;
         }
     };
 
