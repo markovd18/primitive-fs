@@ -374,7 +374,23 @@ private: //private methods
      */
     std::vector<int32_t> getAllDirectLinks(const fs::Inode& inode);
 
-    fs::DirectoryItem removeDirItem(const std::string &filename, const std::vector<int32_t> &directLinks);
+    /**
+     * @brief Checks if given directory item data cluster is free or not.
+     *
+     * @param index index of directory item data cluster
+     * @return true, if given data cluster is free, otherwise false
+     */
+    bool isDirItemIndexFree(int32_t index);
+
+    /**
+     * @brief CHecks if given indirect link is free or not.
+     *
+     * @param index index of indirect link data cluster
+     * @return true, if given data cluster is free, otherwise false
+     */
+    bool isIndirectLinkFree(int32_t index);
+
+    fs::DirectoryItem removeDirItemFromCluster(const std::string &basicString, int index);
 };
 
 

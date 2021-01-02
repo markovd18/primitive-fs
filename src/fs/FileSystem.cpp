@@ -621,7 +621,7 @@ void FileSystem::clearInodeData(const fs::Inode &inode) {
     updateInodeBitmap();
 
     m_currentDirInode.setFileSize(m_currentDirInode.getFileSize() - inode.getFileSize());
-
+    saveInode(m_currentDirInode);
 }
 
 void FileSystem::clearDataBlock(const int32_t dataBlockIndex) {
@@ -630,7 +630,59 @@ void FileSystem::clearDataBlock(const int32_t dataBlockIndex) {
 }
 
 fs::DirectoryItem FileSystem::removeDirectoryItem(const std::string &filename) {
-    return removeDirItem(filename, getAllDirectLinks(m_currentDirInode));
+
+
+    fs::DirectoryItem dirItem;
+    for (const auto & index : m_currentDirInode.getDirectLinks()) {
+        try {
+            dirItem = removeDirItemFromCluster(filename, index);
+        } catch (const pfs::ObjectNotFound& ex) {
+            /// We didn't find directory item in this index, we continue to the next one
+            continue;
+        }
+
+        if (isDirItemIndexFree(index)) {
+            m_dataBitmap.setIndexFree(index);
+            m_currentDirInode.clearDirectLink(index);
+        }
+
+        return dirItem;
+    }
+    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
+    if (!dataFile) {
+        throw std::ios::failure("Chyba při otevírání datového souboru!");
+    }
+
+    int32_t directLink = fs::EMPTY_LINK;
+    for (const auto &index : m_currentDirInode.getIndirectLinks()) {
+        for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(int32_t)) {
+            dataFile.seekg(m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE) + i, std::ios::beg);
+            dataFile.read((char*)&directLink, sizeof(int32_t));
+            if (directLink == fs::EMPTY_LINK) {
+                continue;
+            }
+
+            try {
+                dirItem = removeDirItemFromCluster(filename, directLink);
+            } catch (const pfs::ObjectNotFound& ex) {
+                /// We didn't find directory item in this index, we continue to the next one
+                continue;
+            }
+
+            if (isDirItemIndexFree(directLink)) {
+                m_dataBitmap.setIndexFree(directLink);
+
+                if (isIndirectLinkFree(index)) {
+                    m_dataBitmap.setIndexFree(index);
+                    m_currentDirInode.clearIndirectLink(index);
+                }
+            }
+
+            return dirItem;
+        }
+    }
+
+    throw pfs::ObjectNotFound("DirectoryItem s názvem " + filename + " nenalezen");
 }
 
 std::vector<int32_t> FileSystem::getAllDirectLinks(const fs::Inode &inode) {
@@ -665,31 +717,38 @@ std::vector<int32_t> FileSystem::getAllDirectLinks(const fs::Inode &inode) {
     return directLinks;
 }
 
-fs::DirectoryItem FileSystem::removeDirItem(const std::string &filename, const std::vector<int32_t> &directLinks) {
+bool FileSystem::isDirItemIndexFree(const int32_t index) {
+    //TODO markovda
+}
+
+bool FileSystem::isIndirectLinkFree(const int32_t index) {
+    //TODO markovda
+}
+
+fs::DirectoryItem FileSystem::removeDirItemFromCluster(const std::string &filename, const int index) {
     std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
     if (!dataFile) {
         throw std::ios::failure("Chyba při otevírání datového souboru!");
     }
 
-    for (const auto& index : directLinks) {
-        for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(fs::DirectoryItem)) {
-            fs::DirectoryItem dirItem;
-            dirItem.load(dataFile, m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE) + i);
-            if (dirItem.nameEquals(filename)) {
-                std::fstream dataFileW(m_dataFileName, std::ios::out | std::ios::in | std::ios::binary);
-                if (!dataFileW) {
-                    throw std::ios::failure("Chyba při otevírání datového souboru");
-                }
-
-                dataFileW.seekp(m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE) + i, std::ios::beg);
-                for (int j = 0; j < sizeof(fs::DirectoryItem); ++j) {
-                    dataFileW.put('\0');
-                }
-
-                return dirItem;
+    fs::DirectoryItem dirItem;
+    for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(fs::DirectoryItem)) {
+        dirItem.load(dataFile, m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE) + i);
+        if (dirItem.nameEquals(filename)) {
+            std::fstream dataFileW(m_dataFileName, std::ios::out | std::ios::in | std::ios::binary);
+            if (!dataFileW) {
+                throw std::ios::failure("Chyba při otevírání datového souboru");
             }
+
+            dataFileW.seekp(m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE) + i,
+                            std::ios::beg);
+            for (int j = 0; j < sizeof(fs::DirectoryItem); ++j) {
+                dataFileW.put('\0');
+            }
+
+            return dirItem;
         }
     }
 
-    throw pfs::ObjectNotFound("DirectoryItem s názvem " + filename + " nenalezen");
+    throw pfs::ObjectNotFound("Directory item s názvem " + filename + " nenalezen");
 }

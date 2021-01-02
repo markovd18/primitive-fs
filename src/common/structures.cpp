@@ -322,6 +322,22 @@ namespace fs {
         m_indirectLinks = dataLinks.getIndirectLinks();
     }
 
+    void Inode::clearDirectLink(const int32_t index) {
+        for (int & directLink : m_directLinks) {
+            if (directLink == index) {
+                directLink = fs::EMPTY_LINK;
+            }
+        }
+    }
+
+    void Inode::clearIndirectLink(int32_t index) {
+        for (int &indirectLink : m_indirectLinks) {
+            if (indirectLink == index) {
+                indirectLink = fs::EMPTY_LINK;
+            }
+        }
+    }
+
     DataLinks::DataLinks(const std::vector<int32_t> &dataClusterIndexes) {
         init();
         for (int i = 0; i < m_directLinks.size(); ++i) {

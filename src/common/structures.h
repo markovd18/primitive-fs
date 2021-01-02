@@ -150,7 +150,23 @@ namespace fs {
 
         bool addDirectLink(int32_t index);
 
-        bool addIndirectLink(int32_t index);
+        /**
+         * @brief Clears direct link with given address
+         * @param address address to remove from direct links
+         *
+         * Checks if given address is one of inode's direct links and if so, sets the index to @a EMPTY_LINK
+         */
+        void clearDirectLink(int32_t address);
+
+        bool addIndirectLink(int32_t address);
+
+        /**
+         * @brief Clears direct link with given address
+         * @param address address to remove from indirect links
+         *
+         * Checks if given address is one of inode's indirect links and if so, sets the index to @a EMPTY_LINK
+         */
+        void clearIndirectLink(int32_t address);
 
         /**
          * Clears all direct and indirect links, setting them to @a fs::EMPTY_LINK
