@@ -380,7 +380,7 @@ namespace fs {
             for (int i = 0; i < m_length; ++i) {
                 for (int j = 7; j >= 0; --j) {
                     if (!((m_bitmap[i] >> j) & 0b1)) {
-                        freeIndexes.push_back(i + (7 - j));
+                        freeIndexes.push_back((i * 8) + (7 - j));
                         if (freeIndexes.size() == count) {
                             return freeIndexes;
                         }

@@ -57,5 +57,13 @@ namespace fnct {
      * @param fileSystem file system which we want to access
      */
     void rm(const std::vector<std::string>& parameters, FileSystem* fileSystem);
+
+    /**
+     * Prints contents of a file into the console.
+     *
+     * @param parameters requires one parameter - path to existing file which is not a directory
+     * @param fileSystem system which we want to access
+     */
+    void cat(const std::vector<std::string>& parameters, FileSystem* fileSystem);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H

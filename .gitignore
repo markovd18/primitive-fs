@@ -10,3 +10,4 @@ primitive_fs
 myFs.dat
 *.a
 *.cbp
+Makefile

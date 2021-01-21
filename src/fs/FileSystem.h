@@ -222,6 +222,14 @@ public: //public methods
      */
     void updateDataBitmap();
 
+    /**
+     * Prints content of a file into the console.
+     *
+     * @param pathToFile path to a file to print into the console
+     * @throw invalid_parameter if file is not found or is a directory
+     */
+    void printFileContent(const std::filesystem::path& pathToFile);
+
 private: //private methods
     /**
      * Writes superblock at the start of the file-system. Requires open input stream to data file passed. If
@@ -391,6 +399,10 @@ private: //private methods
     bool isIndirectLinkFree(int32_t index);
 
     fs::DirectoryItem removeDirItemFromCluster(const std::string &basicString, int index);
+
+    fs::DirectoryItem findDirectoryItem(const std::filesystem::path &fileName);
+
+    void printContent(const fs::Inode &inode);
 };
 
 

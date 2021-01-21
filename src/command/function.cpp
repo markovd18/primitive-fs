@@ -144,3 +144,21 @@ void fnct::rm(const std::vector<std::string> &parameters, FileSystem *fileSystem
         std::cout << fnct::PNF_DEST << '\n';
     }
 }
+
+void fnct::cat(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.at(0).empty()) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    try {
+        fileSystem->printFileContent(parameters.at(0));
+    } catch (const std::exception &exception) {
+        std::cout << fnct::PNF_DEST << '\n';
+    }
+}
