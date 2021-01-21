@@ -217,12 +217,13 @@ void FileSystem::removeFile(const std::filesystem::path &path) {
         changeDirectory(pathNoFilename);
     }
 
-    fs::DirectoryItem directoryItem(removeDirectoryItem(path.filename()));
+    fs::DirectoryItem directoryItem = findDirectoryItem(path.filename());
     fs::Inode fileInode(findInode(directoryItem.getInodeId()));
     if (fileInode.isDirectory()) {
         throw std::invalid_argument("Soubor na předané cestě nelze smazat, protože je to složka");
     }
 
+    removeDirectoryItem(path.filename());
     clearInodeData(fileInode);
 
     /// Returning back to the former directory
@@ -733,10 +734,26 @@ std::vector<int32_t> FileSystem::getAllDirectLinks(const fs::Inode &inode) {
 
 bool FileSystem::isDirItemIndexFree(const int32_t index) {
     //TODO markovda
+    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
+    if (!dataFile) {
+        throw std::ios::failure("Chyba při otevírání datového souboru!");
+    }
+
+    fs::DirectoryItem dirItem;
+    dirItem.load(dataFile, m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE));
+    return ((dirItem.getInodeId() == 0) && (dirItem.getItemName()[0] == 0));
 }
 
 bool FileSystem::isIndirectLinkFree(const int32_t index) {
-    //TODO markovda
+    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
+    if (!dataFile) {
+        throw std::ios::failure("Chyba při otevírání datového souboru!");
+    }
+
+    int32_t directLink;
+    dataFile.seekg(m_superblock.getDataStartAddress() + (index * fs::Superblock::CLUSTER_SIZE));
+    dataFile.read((char*)&directLink, sizeof(directLink));
+    return directLink == 0;
 }
 
 fs::DirectoryItem FileSystem::removeDirItemFromCluster(const std::string &filename, const int index) {
