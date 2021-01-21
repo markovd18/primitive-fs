@@ -27,7 +27,9 @@ private: //private attributes
             {"incp", &fnct::incp},
             {"pwd", &fnct::pwd},
             {"cd", &fnct::cd},
-            {"ls", &fnct::ls}
+            {"ls", &fnct::ls},
+            {"rm", &fnct::rm},
+            {"cat", &fnct::cat}
     };
 public: //public methods
 

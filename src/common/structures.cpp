@@ -20,7 +20,8 @@ namespace fs {
          */
         m_inodeCount = m_diskSize / 1000;
         m_inodeBitmapStartAddress = sizeof(Superblock);
-        m_dataBitmapStartAddress = m_inodeBitmapStartAddress + m_inodeCount;
+        m_dataBitmapStartAddress = m_inodeBitmapStartAddress +
+                ((m_inodeCount % 8 == 0) ? (m_inodeCount / 8) : ((m_inodeCount / 8) + 1));
 
         size_t inodeStorageSize = m_inodeCount * sizeof(Inode);
         /**
@@ -39,7 +40,8 @@ namespace fs {
 
         m_clusterCount = clusterCountNoMap - clustersToRemove;
 
-        m_inodeStartAddress = m_dataBitmapStartAddress + m_clusterCount;
+        m_inodeStartAddress = m_dataBitmapStartAddress +
+                ((m_clusterCount % 8 == 0) ? (m_clusterCount / 8) : ((m_clusterCount / 8) + 1));
         m_dataStartAddress = m_inodeStartAddress + inodeStorageSize;
     }
 
@@ -320,6 +322,22 @@ namespace fs {
     void Inode::setData(const DataLinks &dataLinks) {
         m_directLinks = dataLinks.getDirectLinks();
         m_indirectLinks = dataLinks.getIndirectLinks();
+    }
+
+    void Inode::clearDirectLink(const int32_t index) {
+        for (int & directLink : m_directLinks) {
+            if (directLink == index) {
+                directLink = fs::EMPTY_LINK;
+            }
+        }
+    }
+
+    void Inode::clearIndirectLink(int32_t index) {
+        for (int &indirectLink : m_indirectLinks) {
+            if (indirectLink == index) {
+                indirectLink = fs::EMPTY_LINK;
+            }
+        }
     }
 
     DataLinks::DataLinks(const std::vector<int32_t> &dataClusterIndexes) {

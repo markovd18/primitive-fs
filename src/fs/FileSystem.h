@@ -222,6 +222,14 @@ public: //public methods
      */
     void updateDataBitmap();
 
+    /**
+     * Prints content of a file into the console.
+     *
+     * @param pathToFile path to a file to print into the console
+     * @throw invalid_parameter if file is not found or is a directory
+     */
+    void printFileContent(const std::filesystem::path& pathToFile);
+
 private: //private methods
     /**
      * Writes superblock at the start of the file-system. Requires open input stream to data file passed. If
@@ -275,30 +283,12 @@ private: //private methods
     void getRootInode(fs::Inode& rootInode);
 
     /**
-     * Reads all directory items of passed directory i-node from it's direct links and stores them into passed vector of directory items.
-     * If passed argument is not a directory, throws invalid_argument
-     *
-     * @param directory directory which we want to read
-     * @param directoryItems vector to store directory items into
-     */
-    void readDirItemsDirect(const fs::Inode& directory, std::vector<fs::DirectoryItem>& directoryItems);
-
-    /**
-     * Reads all directory items of passed directory i-node from it's indirect links and stores them into passed vector of directory items.
-     * If passed argument is not a directory, throws invalid_argument
-     *
-     * @param directory directory which we want to read
-     * @param directoryItems vector to store directory items into
-     */
-    void readDirItemsIndirect(const fs::Inode& directory, std::vector<fs::DirectoryItem>& directoryItems);
-
-    /**
-     * Reads all directory items on passed data indexes and stores them into passed vector of directory items.
+     * Reads all directory items on given indexes
      *
      * @param indexList vector of directory item data indexes
-     * @param directoryItems vector to store directory items into
+     * @return vector with directory items found on given indexes
      */
-    void readDirItems(const std::vector<int32_t>& indexList, std::vector<fs::DirectoryItem>& directoryItems);
+    std::vector<fs::DirectoryItem> readDirItems(const std::vector<int32_t>& indexList);
 
     /**
      * Saves all file data into the file system data file.
@@ -382,6 +372,37 @@ private: //private methods
      * @param dataBlockIndex index to be set as free
      */
     void clearDataBlock(int32_t dataBlockIndex);
+
+    /**
+     * Returns a vector filled with all the direct links from given inode, meaning all stored direct links and all
+     * direct links stored in indirect links.
+     *
+     * @param inode inode to find it's direct links
+     * @return vector with inode's direct links
+     */
+    std::vector<int32_t> getAllDirectLinks(const fs::Inode& inode);
+
+    /**
+     * @brief Checks if given directory item data cluster is free or not.
+     *
+     * @param index index of directory item data cluster
+     * @return true, if given data cluster is free, otherwise false
+     */
+    bool isDirItemIndexFree(int32_t index);
+
+    /**
+     * @brief CHecks if given indirect link is free or not.
+     *
+     * @param index index of indirect link data cluster
+     * @return true, if given data cluster is free, otherwise false
+     */
+    bool isIndirectLinkFree(int32_t index);
+
+    fs::DirectoryItem removeDirItemFromCluster(const std::string &basicString, int index);
+
+    fs::DirectoryItem findDirectoryItem(const std::filesystem::path &fileName);
+
+    void printContent(const fs::Inode &inode);
 };
 
 
