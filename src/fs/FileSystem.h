@@ -226,7 +226,7 @@ public: //public methods
      * Prints content of a file into the console.
      *
      * @param pathToFile path to a file to print into the console
-     * @throw invalid_parameter if file is not found or is a directory
+     * @throw invalid_argument if file is not found or is a directory
      */
     void printFileContent(const std::filesystem::path& pathToFile);
 
@@ -238,6 +238,14 @@ public: //public methods
      * @throw invalid_parameter if file is not found or is a directory
      */
     std::string getFileContent(const std::filesystem::path& pathToFile);
+
+    /**
+     * Prints information about a file at the end of given path into the console.
+     *
+     * @param pathToFile path to a file to get information of
+     * @throw invalid_argument if file is not found
+     */
+    void printFileInfo(const std::filesystem::path& pathToFile);
 
 private: //private methods
     /**
@@ -375,12 +383,6 @@ private: //private methods
      * @param inode inode to remove from file system
      */
     void clearInodeData(const fs::Inode& inode);
-    /**
-     * Clears data block index in data bitmap. Only sets given index as free, but does not delete or modify memory at that index.
-     *
-     * @param dataBlockIndex index to be set as free
-     */
-    void clearDataBlock(int32_t dataBlockIndex);
 
     /**
      * Returns a vector filled with all the direct links from given inode, meaning all stored direct links and all

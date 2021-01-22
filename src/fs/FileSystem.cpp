@@ -656,11 +656,6 @@ void FileSystem::clearInodeData(const fs::Inode &inode) {
     saveInode(m_currentDirInode);
 }
 
-void FileSystem::clearDataBlock(const int32_t dataBlockIndex) {
-    m_dataBitmap.setIndexFree(dataBlockIndex);
-    updateDataBitmap();
-}
-
 fs::DirectoryItem FileSystem::removeDirectoryItem(const std::string &filename) {
 
 
@@ -965,4 +960,50 @@ std::string FileSystem::getFileContent(const std::filesystem::path &pathToFile) 
     }
 
     return fileContent;
+}
+
+void FileSystem::printFileInfo(const std::filesystem::path &pathToFile) {
+    std::filesystem::path parentPath(pathToFile.parent_path());
+
+    const std::string currentDir = m_currentDirPath;
+    const fs::Inode currentInode = m_currentDirInode;
+
+    if (m_currentDirPath != parentPath && !parentPath.empty()) {
+        /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
+        changeDirectory(parentPath);
+    }
+
+    std::string filename;
+    if (pathToFile.has_filename()) {
+        filename = pathToFile.filename();
+    } else {
+        filename = m_currentDirPath.substr(m_currentDirPath.find_last_of('/'), m_currentDirPath.size());
+    }
+
+    fs::DirectoryItem dirItem = findDirectoryItem(filename);
+    fs::Inode inode = findInode(dirItem.getInodeId());
+
+    std::cout << "Name: " << dirItem.getItemName().data() << " - Size: " << inode.getFileSize() << " - Inode ID: " << inode.getInodeId() << " - ";
+    std::cout << "Direct links: ";
+    for (const auto &link : inode.getDirectLinks()) {
+        if (link == fs::EMPTY_LINK) {
+            break;
+        }
+
+        std::cout << link << " ";
+    }
+    std::cout << "Indirect links: ";
+    for (const auto &link: inode.getIndirectLinks()) {
+        if (link == fs::EMPTY_LINK) {
+            break;
+        }
+
+        std::cout << link << " ";
+    }
+    std::cout << std::endl;
+
+    if (currentDir != parentPath && !parentPath.empty()) {
+        m_currentDirPath = currentDir;
+        m_currentDirInode = currentInode;
+    }
 }

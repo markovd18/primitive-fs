@@ -30,7 +30,8 @@ private: //private attributes
             {"ls", &fnct::ls},
             {"rm", &fnct::rm},
             {"cat", &fnct::cat},
-            {"outcp", &fnct::outcp}
+            {"outcp", &fnct::outcp},
+            {"info", &fnct::info}
     };
 public: //public methods
 

@@ -11,7 +11,6 @@
 #include "../fs/FileSystem.h"
 #include "returnval.h"
 #include "function.h"
-#include "../utils/ObjectNotFound.h"
 
 void fnct::format(const std::vector <std::string>& parameters, FileSystem* fileSystem) {
     if (fileSystem == nullptr) {
@@ -210,4 +209,36 @@ void fnct::outcp(const std::vector<std::string> &parameters, FileSystem *fileSys
     hddFile.flush();
 
     std::cout << fnct::OK << '\n';
+}
+
+void fnct::info(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.at(0).empty()) {
+        std::cout << fnct::FNF_SOURCE << '\n';
+        return;
+    }
+
+    try {
+        fileSystem->printFileInfo(parameters.at(0));
+    } catch (const pfs::ObjectNotFound& ex) {
+        std::cout << fnct::FNF_SOURCE << '\n';
+    }
+}
+
+void fnct::mkdir(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.at(0).empty()) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+
 }
