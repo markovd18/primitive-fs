@@ -65,5 +65,13 @@ namespace fnct {
      * @param fileSystem system which we want to access
      */
     void cat(const std::vector<std::string>& parameters, FileSystem* fileSystem);
+
+    /**
+     * Copies one file from virtual file system into the real filesystem in this machine.
+     *
+     * @param parameters  requires two parameters - path to existing file in virtual filesystem and path in the PC to store it's copy
+     * @param fileSystem virtual file system which we want to access
+     */
+    void outcp(const std::vector<std::string>& parameters, FileSystem* fileSystem);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H

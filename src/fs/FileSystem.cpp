@@ -827,10 +827,14 @@ void FileSystem::printFileContent(const std::filesystem::path &pathToFile) {
     if (inode.isDirectory()) {
         throw std::invalid_argument("Obsah adresáře nelze vypsat! Použijte funkci \"ls\"!");
     }
-    printContent(inode);
 
-    m_currentDirPath = currentDir;
-    m_currentDirInode = currentInode;
+    std::string fileContent = getFileContent(inode);
+    std::cout << fileContent << '\n';
+
+    if (currentDir != pathNoFilename) {
+        m_currentDirPath = currentDir;
+        m_currentDirInode = currentInode;
+    }
 }
 
 fs::DirectoryItem FileSystem::findDirectoryItem(const std::filesystem::path &fileName) {
@@ -879,7 +883,7 @@ fs::DirectoryItem FileSystem::findDirectoryItem(const std::filesystem::path &fil
     throw pfs::ObjectNotFound("Directory item s předaným názvem nenalezen!");
 }
 
-void FileSystem::printContent(const fs::Inode &inode) {
+std::string FileSystem::getFileContent(const fs::Inode &inode) {
     if (inode.isDirectory()) {
         throw std::invalid_argument("Obsah složky nelze vypsat! Použijte funkci \"ls\"!");
     }
@@ -889,32 +893,76 @@ void FileSystem::printContent(const fs::Inode &inode) {
         throw std::ios::failure("Chyba při otevírání datového souboru!");
     }
 
+    std::string fileContent;
     std::array<char, fs::Superblock::CLUSTER_SIZE> buffer { 0 };
     for (const auto &directLink : inode.getDirectLinks()) {
         if (directLink == fs::EMPTY_LINK) {
-            return;
+            return fileContent;
         }
         dataFile.seekg(m_superblock.getDataStartAddress() + (directLink * fs::Superblock::CLUSTER_SIZE), std::ios::beg);
         dataFile.read(buffer.data(), buffer.size());
-        std::cout << buffer.data();
+        for (const auto& c : buffer) {
+            if (fileContent.size() == inode.getFileSize()) {
+                return fileContent;
+            }
+            fileContent += c;
+        }
     }
 
     int32_t directLink = fs::EMPTY_LINK;
     for (const auto &indirectLink : inode.getIndirectLinks()) {
         if (indirectLink == fs::EMPTY_LINK) {
-            return;
+            return fileContent;
         }
         for (int i = 0; i < fs::Superblock::CLUSTER_SIZE; i += sizeof(int32_t)) {
             dataFile.seekg(m_superblock.getDataStartAddress() + (indirectLink * fs::Superblock::CLUSTER_SIZE) + i,
                            std::ios::beg);
             dataFile.read((char *) &directLink, sizeof(directLink));
             if (directLink == fs::EMPTY_LINK) {
-                return;
+                return fileContent;
             }
             dataFile.seekg(m_superblock.getDataStartAddress() + (directLink * fs::Superblock::CLUSTER_SIZE), std::ios::beg);
             dataFile.read(buffer.data(), buffer.size());
-            std::cout << buffer.data();
+            for (const auto& c : buffer) {
+                if (fileContent.size() == inode.getFileSize()) {
+                    return fileContent;
+                }
+                fileContent += c;
+            }
         }
 
     }
+
+    return fileContent;
+}
+
+std::string FileSystem::getFileContent(const std::filesystem::path &pathToFile) {
+    if (!pathToFile.has_filename()) {
+        throw std::invalid_argument("Předaná cesta nemá název souboru!");
+    }
+
+    std::string pathStr(pathToFile.string());
+    std::string pathNoFilename(pathStr.substr(0, pathStr.length() - pathToFile.filename().string().length()));
+    /// We store current working directory, so we can return back in the end
+    const std::string currentDir = m_currentDirPath;
+    const fs::Inode currentInode = m_currentDirInode;
+
+    if (m_currentDirPath != pathNoFilename) {
+        /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
+        changeDirectory(pathNoFilename);
+    }
+    fs::DirectoryItem dirItem = findDirectoryItem(pathToFile.filename());
+    fs::Inode inode = findInode(dirItem.getInodeId());
+    if (inode.isDirectory()) {
+        throw std::invalid_argument("Obsah adresáře nelze vrátit! Použijte funkci \"ls\"!");
+    }
+
+    std::string fileContent = getFileContent(inode);
+
+    if (currentDir != pathNoFilename) {
+        m_currentDirPath = currentDir;
+        m_currentDirInode = currentInode;
+    }
+
+    return fileContent;
 }

@@ -28,7 +28,7 @@ namespace fs {
          * Returns number of bytes used by the data.
          * @return size of the data in bytes
          */
-        [[nodiscard]] int size() const noexcept;
+        [[nodiscard]] unsigned long size() const noexcept;
     };
 
     /**

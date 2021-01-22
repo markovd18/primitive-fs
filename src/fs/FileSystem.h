@@ -230,6 +230,15 @@ public: //public methods
      */
     void printFileContent(const std::filesystem::path& pathToFile);
 
+    /**
+     * Returns the content of a file.
+     *
+     * @param pathToFile path to a file to retrieve it's content
+     * @return content of given file
+     * @throw invalid_parameter if file is not found or is a directory
+     */
+    std::string getFileContent(const std::filesystem::path& pathToFile);
+
 private: //private methods
     /**
      * Writes superblock at the start of the file-system. Requires open input stream to data file passed. If
@@ -402,7 +411,7 @@ private: //private methods
 
     fs::DirectoryItem findDirectoryItem(const std::filesystem::path &fileName);
 
-    void printContent(const fs::Inode &inode);
+    std::string getFileContent(const fs::Inode &inode);
 };
 
 

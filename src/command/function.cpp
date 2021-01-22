@@ -29,7 +29,7 @@ void fnct::format(const std::vector <std::string>& parameters, FileSystem* fileS
 
     if(!fileSystem->initialize(superblock)) {
         std::cout << fnct::CANNOT_CREATE_FILE << '\n';
-        exit(EXIT_FAILURE);
+        return;
     }
 
     std::cout << fnct::OK << '\n';
@@ -55,9 +55,11 @@ void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSyst
     }
 
     const auto fileSize = std::filesystem::file_size(hddPath);
-    char fileBuffer[fileSize];
+    char fileBuffer[fileSize + 1];
     hddFile.read((char*)fileBuffer, fileSize);
-
+    fileBuffer[fileSize + 1] = 0;
+    /// Adding null termination character, so we can simply work with dynamic strings
+    /// Null termination character will be removed when saving into the data file
     try {
         fileSystem->createFile(parameters.at(1), fs::FileData(fileBuffer));
         std::cout << fnct::OK << '\n';
@@ -143,6 +145,8 @@ void fnct::rm(const std::vector<std::string> &parameters, FileSystem *fileSystem
     } catch (const std::exception &ex) {
         std::cout << fnct::PNF_DEST << '\n';
     }
+
+    std::cout << fnct::OK << '\n';
 }
 
 void fnct::cat(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
@@ -161,4 +165,49 @@ void fnct::cat(const std::vector<std::string> &parameters, FileSystem *fileSyste
     } catch (const std::exception &exception) {
         std::cout << fnct::PNF_DEST << '\n';
     }
+}
+
+void fnct::outcp(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.size() < 2 || parameters.at(0).empty() || parameters.at(1).empty()) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    std::filesystem::path hddPath(parameters.at(1));
+    if (!hddPath.has_filename()) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    if (std::filesystem::exists(hddPath) || std::filesystem::is_directory(hddPath)) {
+        std::cout << fnct::CANNOT_CREATE_FILE << '\n';
+        return;
+    }
+
+    if (hddPath.has_parent_path() && !std::filesystem::exists(hddPath.parent_path())) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    std::string fileContent;
+    try {
+        fileContent = fileSystem->getFileContent(parameters.at(0));
+    } catch (const std::invalid_argument &ex) {
+        std::cout << fnct::FNF_SOURCE << '\n';
+    }
+
+    std::ofstream hddFile(parameters.at(1), std::ios::out | std::ios::binary);
+    if (!hddFile) {
+        throw std::ios::failure("Error while opening the hard disk file!");
+    }
+
+    hddFile.write(fileContent.data(), fileContent.size());
+    hddFile.flush();
+
+    std::cout << fnct::OK << '\n';
 }

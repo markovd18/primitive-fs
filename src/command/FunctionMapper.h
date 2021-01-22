@@ -29,7 +29,8 @@ private: //private attributes
             {"cd", &fnct::cd},
             {"ls", &fnct::ls},
             {"rm", &fnct::rm},
-            {"cat", &fnct::cat}
+            {"cat", &fnct::cat},
+            {"outcp", &fnct::outcp}
     };
 public: //public methods
 
