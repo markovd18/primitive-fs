@@ -196,9 +196,13 @@ void FileSystem::createFile(const std::filesystem::path &path, const fs::FileDat
     saveDirItemIntoCurrent(fs::DirectoryItem(path.filename(), inode.getInodeId()));
     m_currentDirInode.setFileSize(m_currentDirInode.getFileSize() + inode.getFileSize());
     saveInode(m_currentDirInode);
-    /// Returning back to the original directory
-    m_currentDirInode = currentInode;
-    m_currentDirPath = currentDir;
+
+    if (currentDir != pathNoFilename) {
+        /// Returning back to the original directory
+        m_currentDirInode = currentInode;
+        m_currentDirPath = currentDir;
+    }
+
 }
 
 void FileSystem::removeFile(const std::filesystem::path &path) {
@@ -226,9 +230,12 @@ void FileSystem::removeFile(const std::filesystem::path &path) {
     removeDirectoryItem(path.filename());
     clearInodeData(fileInode);
 
-    /// Returning back to the former directory
-    m_currentDirInode = currentInode;
-    m_currentDirPath = currentDir;
+    if (currentDir != pathNoFilename) {
+        /// Returning back to the former directory
+        m_currentDirInode = currentInode;
+        m_currentDirPath = currentDir;
+    }
+
 }
 
 void FileSystem::changeDirectory(const std::filesystem::path& path) {
@@ -577,7 +584,7 @@ void FileSystem::saveDirItemToCurrentIndirect(const fs::DirectoryItem& directory
             int32_t addressToStoreTo = getFreeDataBlock();
             saveDirItemToIndex(directoryItem, addressToStoreTo);
 
-            std::ofstream dataFile(m_dataFileName, std::ios::out | std::ios::app | std::ios::binary);
+            std::fstream dataFile(m_dataFileName, std::ios::out | std::ios::in | std::ios::binary);
             if (!dataFile) {
                 throw std::ios_base::failure("Chyba při otevírání datového souboru!");
             }
@@ -603,7 +610,7 @@ void FileSystem::saveDirItemToFreeIndirectLink(const fs::DirectoryItem &director
 
     int32_t newIndirectLink = getFreeDataBlock();
     m_currentDirInode.addIndirectLink(newIndirectLink);
-    std::ofstream dataFile(m_dataFileName, std::ios::out | std::ios::binary | std::ios::app);
+    std::fstream dataFile(m_dataFileName, std::ios::out | std::ios::in | std::ios::binary);
     if (!dataFile) {
         throw std::ios_base::failure("Chyba při otevírání datového souboru!");
     }
@@ -616,18 +623,34 @@ void FileSystem::saveDirItemToFreeIndirectLink(const fs::DirectoryItem &director
 }
 
 void FileSystem::clearInodeData(const fs::Inode &inode) {
+    std::fstream dataFile(m_dataFileName, std::ios::out | std::ios::in | std::ios::binary);
+    if (!dataFile) {
+        throw std::ios_base::failure("Chyba při otevírání datového souboru!");
+    }
+
+    std::array<int, fs::Superblock::CLUSTER_SIZE> buffer { 0 };
     for (const auto &directLink : getAllDirectLinks(inode)) {
         m_dataBitmap.setIndexFree(directLink);
+        dataFile.seekp(m_superblock.getDataStartAddress() + (directLink * fs::Superblock::CLUSTER_SIZE));
+        dataFile.write((char*)buffer.data(), buffer.size());
+        dataFile.flush();
     }
 
     for (const auto &indirectLink : inode.getIndirectLinks()) {
         m_dataBitmap.setIndexFree(indirectLink);
+        dataFile.seekp(m_superblock.getDataStartAddress() + (indirectLink * fs::Superblock::CLUSTER_SIZE));
+        dataFile.write((char*) buffer.data(), buffer.size());
+        dataFile.flush();
     }
 
-    updateDataBitmap();
+    dataFile.seekp(m_superblock.getInodeStartAddress() + (inode.getInodeId() * sizeof(inode)));
+    dataFile.write((char*)buffer.data(), sizeof(inode));
+    dataFile.flush();
+
+    m_dataBitmap.save(dataFile, m_superblock.getDataBitmapStartAddress());
 
     m_inodeBitmap.setIndexFree(inode.getInodeId());
-    updateInodeBitmap();
+    m_inodeBitmap.save(dataFile, m_superblock.getInodeBitmapStartAddress());
 
     m_currentDirInode.setFileSize(m_currentDirInode.getFileSize() - inode.getFileSize());
     saveInode(m_currentDirInode);
@@ -733,7 +756,6 @@ std::vector<int32_t> FileSystem::getAllDirectLinks(const fs::Inode &inode) {
 }
 
 bool FileSystem::isDirItemIndexFree(const int32_t index) {
-    //TODO markovda
     std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
     if (!dataFile) {
         throw std::ios::failure("Chyba při otevírání datového souboru!");
