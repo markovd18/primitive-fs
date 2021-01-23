@@ -112,7 +112,7 @@ void fnct::ls(const std::vector<std::string> &parameters, FileSystem *fileSystem
     std::vector<fs::DirectoryItem> dirItems;
     try {
          dirItems = fileSystem->getDirectoryItems(parameters.at(0));
-    } catch (const std::invalid_argument &ex) {
+    } catch (const std::exception &ex) {
         std::cout << fnct::PNF_DEST << '\n';
         return;
     }
@@ -127,7 +127,6 @@ void fnct::ls(const std::vector<std::string> &parameters, FileSystem *fileSystem
         std::cout << mark << dirItem.getItemName().data() << '\n';
     }
 }
-
 void fnct::rm(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
     if (fileSystem == nullptr || !fileSystem->isInitialized()) {
         std::cout << "File system is not initialized!\n";
@@ -240,5 +239,11 @@ void fnct::mkdir(const std::vector<std::string> &parameters, FileSystem *fileSys
         return;
     }
 
+    try {
+        fileSystem->createDirectory(parameters.at(0));
+    } catch (const std::exception &exception) {
+        std::cout << fnct::PNF_DEST << '\n';
+    }
 
+    std::cout << fnct::OK << '\n';
 }

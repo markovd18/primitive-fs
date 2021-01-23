@@ -247,6 +247,13 @@ public: //public methods
      */
     void printFileInfo(const std::filesystem::path& pathToFile);
 
+    /**
+     * Creates new directory at given path.
+     *
+     * @param path path to new directory
+     */
+    void createDirectory(const std::filesystem::path& path);
+
 private: //private methods
     /**
      * Writes superblock at the start of the file-system. Requires open input stream to data file passed. If
