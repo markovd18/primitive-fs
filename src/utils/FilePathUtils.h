@@ -66,15 +66,23 @@ namespace pfs::path {
     std::string createPathFromTokens(std::vector<std::string> tokens, const bool absolute = true) {
         std::string path;
         if (absolute) {
-            path.append("/");
+            path += "/";
         }
 
-        for (std::vector<std::string>::iterator it = tokens.begin(); it != (tokens.end() - 1); it++) {
-            path.append(it->data());
-            path.append("/");
+        if (tokens.empty()) {
+            return path;
         }
+
+        for (int i = 0; i < tokens.size() - 1; ++i) {
+            if (tokens[i].empty()) {
+                continue;
+            }
+
+            path += tokens[i] + "/";
+        }
+
         /// Skipping the last one, so we can append only the file name without "/"
-        path.append(tokens.back());
+        path += tokens[tokens.size() - 1];
         return path;
     }
 

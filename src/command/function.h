@@ -73,5 +73,21 @@ namespace fnct {
      * @param fileSystem virtual file system which we want to access
      */
     void outcp(const std::vector<std::string>& parameters, FileSystem* fileSystem);
+
+    /**
+     * Prints info about the file at the end of given path.
+     *
+     * @param parameters requires one parameter - existing path to a file or directory in virtual file system
+     * @param fileSystem virtual file system that we want to access
+     */
+    void info(const std::vector<std::string>& parameters, FileSystem* fileSystem);
+
+    /**
+     * Creates a directory at given path.
+     *
+     * @param parameters requires one parameter -
+     * @param fileSystem
+     */
+    void mkdir(const std::vector<std::string>& parameters, FileSystem* fileSystem);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H

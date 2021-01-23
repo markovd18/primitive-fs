@@ -527,7 +527,9 @@ void FileSystem::saveDirItemToIndex(const fs::DirectoryItem &directoryItem, cons
         throw std::ios_base::failure("Chyba při otevírání datového souboru");
     }
     dataFile.seekp(address + sizeof(directoryItem), std::ios_base::beg);
-    dataFile.write("\0", fs::Superblock::CLUSTER_SIZE - sizeof(directoryItem));
+    for (int i = sizeof(directoryItem); i < fs::Superblock::CLUSTER_SIZE; ++i) {
+        dataFile.put('\0');
+    }
     dataFile.flush();
 
     m_dataBitmap.setIndexFilled(index);
@@ -654,11 +656,6 @@ void FileSystem::clearInodeData(const fs::Inode &inode) {
 
     m_currentDirInode.setFileSize(m_currentDirInode.getFileSize() - inode.getFileSize());
     saveInode(m_currentDirInode);
-}
-
-void FileSystem::clearDataBlock(const int32_t dataBlockIndex) {
-    m_dataBitmap.setIndexFree(dataBlockIndex);
-    updateDataBitmap();
 }
 
 fs::DirectoryItem FileSystem::removeDirectoryItem(const std::string &filename) {
@@ -965,4 +962,95 @@ std::string FileSystem::getFileContent(const std::filesystem::path &pathToFile) 
     }
 
     return fileContent;
+}
+
+void FileSystem::printFileInfo(const std::filesystem::path &pathToFile) {
+    std::filesystem::path parentPath(pathToFile.parent_path());
+
+    const std::string currentDir = m_currentDirPath;
+    const fs::Inode currentInode = m_currentDirInode;
+
+    if (m_currentDirPath != parentPath && !parentPath.empty()) {
+        /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
+        changeDirectory(parentPath);
+    }
+
+    std::string filename;
+    if (pathToFile.has_filename()) {
+        filename = pathToFile.filename();
+    } else {
+        filename = std::filesystem::path(m_currentDirPath).filename();
+    }
+
+    fs::DirectoryItem dirItem = findDirectoryItem(filename);
+    fs::Inode inode = findInode(dirItem.getInodeId());
+
+    std::cout << "Name: " << dirItem.getItemName().data() << " - Size: " << inode.getFileSize() << " - Inode ID: " << inode.getInodeId() << " - ";
+    std::cout << "Direct links: ";
+    for (const auto &link : inode.getDirectLinks()) {
+        if (link == fs::EMPTY_LINK) {
+            break;
+        }
+
+        std::cout << link << " ";
+    }
+    std::cout << "Indirect links: ";
+    for (const auto &link: inode.getIndirectLinks()) {
+        if (link == fs::EMPTY_LINK) {
+            break;
+        }
+
+        std::cout << link << " ";
+    }
+    std::cout << std::endl;
+
+    if (currentDir != parentPath && !parentPath.empty()) {
+        m_currentDirPath = currentDir;
+        m_currentDirInode = currentInode;
+    }
+}
+
+void FileSystem::createDirectory(const std::filesystem::path &path) {
+    std::filesystem::path directory;
+    std::filesystem::path parent;
+    if (path.has_filename()) {
+        directory = path.filename();
+        parent = path.parent_path();
+    } else {
+        directory = path.parent_path().filename();
+        parent = path.parent_path().parent_path();
+    }
+
+
+    const std::string currentDir = m_currentDirPath;
+    const fs::Inode currentInode = m_currentDirInode;
+
+    if (m_currentDirPath != parent && !parent.empty()) {
+        /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
+        changeDirectory(parent);
+    }
+
+    std::vector<fs::DirectoryItem> dirItems(getDirectoryItems(m_currentDirPath));
+    auto it = std::find_if(dirItems.begin(), dirItems.end(), [&directory](const fs::DirectoryItem item) { return item.nameEquals(directory.filename()); });
+    if (it != dirItems.end()) {
+        throw std::invalid_argument("Soubor s předaným názvem již exituje!");
+    }
+
+    fs::Inode inode(createInode(true, 0));
+    fs::DirectoryItem directoryItem(directory.string(), inode.getInodeId());
+    saveDirItemIntoCurrent(directoryItem);
+    saveInode(inode);
+    saveInode(m_currentDirInode);
+
+    fs::DirectoryItem dirItemSelf(".", inode.getInodeId());
+    fs::DirectoryItem dirItemParent("..", m_currentDirInode.getInodeId());
+
+    changeDirectory(directory);
+    saveDirItemIntoCurrent(dirItemSelf);
+    saveDirItemIntoCurrent(dirItemParent);
+    saveInode(m_currentDirInode);
+
+    /// Returning back to the original directory
+    m_currentDirInode = currentInode;
+    m_currentDirPath = currentDir;
 }

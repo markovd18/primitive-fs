@@ -11,7 +11,6 @@
 #include "../fs/FileSystem.h"
 #include "returnval.h"
 #include "function.h"
-#include "../utils/ObjectNotFound.h"
 
 void fnct::format(const std::vector <std::string>& parameters, FileSystem* fileSystem) {
     if (fileSystem == nullptr) {
@@ -113,7 +112,7 @@ void fnct::ls(const std::vector<std::string> &parameters, FileSystem *fileSystem
     std::vector<fs::DirectoryItem> dirItems;
     try {
          dirItems = fileSystem->getDirectoryItems(parameters.at(0));
-    } catch (const std::invalid_argument &ex) {
+    } catch (const std::exception &ex) {
         std::cout << fnct::PNF_DEST << '\n';
         return;
     }
@@ -128,7 +127,6 @@ void fnct::ls(const std::vector<std::string> &parameters, FileSystem *fileSystem
         std::cout << mark << dirItem.getItemName().data() << '\n';
     }
 }
-
 void fnct::rm(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
     if (fileSystem == nullptr || !fileSystem->isInitialized()) {
         std::cout << "File system is not initialized!\n";
@@ -208,6 +206,44 @@ void fnct::outcp(const std::vector<std::string> &parameters, FileSystem *fileSys
 
     hddFile.write(fileContent.data(), fileContent.size());
     hddFile.flush();
+
+    std::cout << fnct::OK << '\n';
+}
+
+void fnct::info(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.at(0).empty()) {
+        std::cout << fnct::FNF_SOURCE << '\n';
+        return;
+    }
+
+    try {
+        fileSystem->printFileInfo(parameters.at(0));
+    } catch (const pfs::ObjectNotFound& ex) {
+        std::cout << fnct::FNF_SOURCE << '\n';
+    }
+}
+
+void fnct::mkdir(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.at(0).empty()) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    try {
+        fileSystem->createDirectory(parameters.at(0));
+    } catch (const std::exception &exception) {
+        std::cout << fnct::PNF_DEST << '\n';
+    }
 
     std::cout << fnct::OK << '\n';
 }
