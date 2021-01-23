@@ -34,7 +34,8 @@ private: //private attributes
             {"info", &fnct::info},
             {"mkdir", &fnct::mkdir},
             {"rmdir", &fnct::rmdir},
-            {"cp", &fnct::cp}
+            {"cp", &fnct::cp},
+            {"mv", &fnct::mv}
     };
 public: //public methods
 

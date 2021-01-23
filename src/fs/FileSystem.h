@@ -269,6 +269,14 @@ public: //public methods
      */
     void copyFile(const std::filesystem::path& pathFrom, const std::filesystem::path& pathTo);
 
+    /**
+     * Moves an existing file from given path to the second given path. The destination path has to be including the new filename.
+     *
+     * @param pathFrom source path of a file
+     * @param pathTo new destination path of a file
+     */
+    void moveFile(const std::filesystem::path& pathFrom, const std::filesystem::path& pathTo);
+
 private: //private methods
     /**
      * Writes superblock at the start of the file-system. Requires open input stream to data file passed. If

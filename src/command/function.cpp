@@ -294,3 +294,24 @@ void fnct::cp(const std::vector<std::string> &parameters, FileSystem *fileSystem
     std::cout << fnct::OK << '\n';
 
 }
+
+void fnct::mv(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.at(0).empty() || parameters.at(1).empty()) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    try {
+        fileSystem->moveFile(parameters.at(0), parameters.at(1));
+    } catch (const std::exception &ex) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    std::cout << fnct::OK << '\n';
+}
