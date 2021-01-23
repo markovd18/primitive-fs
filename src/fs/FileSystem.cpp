@@ -8,6 +8,8 @@
 #include <algorithm>
 #include "FileSystem.h"
 #include "../utils/FilePathUtils.h"
+#include "../utils/InvalidState.h"
+#include "../command/returnval.h"
 
 bool FileSystem::initialize(fs::Superblock &sb) {
 
@@ -175,13 +177,17 @@ void FileSystem::createFile(const std::filesystem::path &path, const fs::FileDat
 
     if (m_currentDirPath != pathNoFilename) {
         /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
-        changeDirectory(pathNoFilename);
+        try {
+            changeDirectory(pathNoFilename);
+        } catch (const std::exception &ex) {
+            throw std::invalid_argument(fnct::PNF_DEST);
+        }
     }
 
     std::vector<fs::DirectoryItem> dirItems(getDirectoryItems(m_currentDirPath));
     auto it = std::find_if(dirItems.begin(), dirItems.end(), [&path](const fs::DirectoryItem item) { return item.nameEquals(path.filename()); });
     if (it != dirItems.end()) {
-        throw std::invalid_argument("Soubor s předaným názvem již exituje!");
+        throw pfs::InvalidState("Soubor s předaným názvem již exituje!");
     }
 
     fs::Inode inode(createInode(false, fileData.size()));
@@ -951,7 +957,7 @@ std::string FileSystem::getFileContent(const std::filesystem::path &pathToFile) 
     fs::DirectoryItem dirItem = findDirectoryItem(pathToFile.filename());
     fs::Inode inode = findInode(dirItem.getInodeId());
     if (inode.isDirectory()) {
-        throw std::invalid_argument("Obsah adresáře nelze vrátit! Použijte funkci \"ls\"!");
+        throw pfs::InvalidState("Obsah adresáře nelze vrátit! Použijte funkci \"ls\"!");
     }
 
     std::string fileContent = getFileContent(inode);
@@ -1031,13 +1037,17 @@ void FileSystem::createDirectory(const std::filesystem::path &path) {
 
     if (m_currentDirPath != parent && !parent.empty()) {
         /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
-        changeDirectory(parent);
+        try {
+            changeDirectory(parent);
+        } catch (const std::exception& ex) {
+            throw std::invalid_argument(fnct::PNF_DEST);
+        }
     }
 
     std::vector<fs::DirectoryItem> dirItems(getDirectoryItems(m_currentDirPath));
     auto it = std::find_if(dirItems.begin(), dirItems.end(), [&directory](const fs::DirectoryItem item) { return item.nameEquals(directory.filename()); });
     if (it != dirItems.end()) {
-        throw std::invalid_argument("Soubor s předaným názvem již exituje!");
+        throw pfs::InvalidState(fnct::EXISTS);
     }
 
     fs::Inode inode(createInode(true, 0));
@@ -1079,19 +1089,23 @@ void FileSystem::removeDirectory(const std::filesystem::path &path) {
 
     if (m_currentDirPath != parent && !parent.empty()) {
         /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
-        changeDirectory(parent);
+        try {
+            changeDirectory(parent);
+        } catch (const std::exception &ex) {
+            throw std::invalid_argument(fnct::FNF_DIR);
+        }
     }
 
     fs::DirectoryItem dirItem = findDirectoryItem(directory);
     fs::Inode inode = findInode(dirItem.getInodeId());
     if (!inode.isDirectory()) {
-        throw std::invalid_argument("Soubor nelze smazet. Není složka!");
+        throw std::invalid_argument(fnct::FNF_DIR);
     }
     /// We fill direct links from the front, so the second one has to be EMPTY_LINK and the first one has to have stored only
     /// . and .. directory items
     if (inode.getDirectLinks()[1] != fs::EMPTY_LINK ||
             getFreeDirItemDataBlockSubindex(inode.getDirectLinks()[0]) != 2 * sizeof(dirItem)) {
-        throw std::invalid_argument("Složku nelze smazat. Neni prázdná!");
+        throw pfs::InvalidState(fnct::NOT_EMPTY);
     }
 
     removeDirectoryItem(directory.string());
@@ -1109,8 +1123,18 @@ void FileSystem::copyFile(const std::filesystem::path &pathFrom, const std::file
         throw std::invalid_argument("Paths must not be empty!");
     }
 
-    std::string fileContent = getFileContent(pathFrom);
-    createFile(pathTo, fs::FileData(fileContent));
+    std::string fileContent;
+    try {
+        fileContent = getFileContent(pathFrom);
+    } catch (const std::exception &ex) {
+        throw std::invalid_argument(fnct::FNF_SOURCE);
+    }
+
+    try {
+        createFile(pathTo, fs::FileData(fileContent));
+    } catch (const std::exception &ex) {
+        throw std::invalid_argument(fnct::PNF_DEST);
+    }
 }
 
 void FileSystem::moveFile(const std::filesystem::path &pathFrom, const std::filesystem::path &pathTo) {

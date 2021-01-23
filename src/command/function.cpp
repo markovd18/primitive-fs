@@ -65,10 +65,8 @@ void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSyst
     try {
         fileSystem->createFile(parameters.at(1), fs::FileData(fileData));
         std::cout << fnct::OK << '\n';
-    } catch (const std::invalid_argument& ex) {
-        std::cout << fnct::PNF_DEST << '\n';
-    } catch (const pfs::ObjectNotFound& ex) {
-        std::cout << fnct::FS_FULL << '\n';
+    } catch (const std::exception& ex) {
+        std::cout << ex.what() << '\n';
     }
 
 }
@@ -97,7 +95,7 @@ void fnct::cd(const std::vector<std::string> &parameters, FileSystem *fileSystem
         }
         std::cout << fnct::OK << '\n';
     } catch (const std::invalid_argument& ex) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::PNF_PATH << '\n';
     }
 }
 
@@ -116,7 +114,7 @@ void fnct::ls(const std::vector<std::string> &parameters, FileSystem *fileSystem
     try {
          dirItems = fileSystem->getDirectoryItems(parameters.at(0));
     } catch (const std::exception &ex) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::PNF_DIR << '\n';
         return;
     }
 
@@ -137,14 +135,14 @@ void fnct::rm(const std::vector<std::string> &parameters, FileSystem *fileSystem
     }
 
     if (parameters.empty() || parameters.at(0).empty()) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
 
     try {
         fileSystem->removeFile(parameters.at(0));
     } catch (const std::exception &ex) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::FILE_NOT_FOUND << '\n';
         return;
     }
 
@@ -158,14 +156,14 @@ void fnct::cat(const std::vector<std::string> &parameters, FileSystem *fileSyste
     }
 
     if (parameters.empty() || parameters.at(0).empty()) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
 
     try {
         fileSystem->printFileContent(parameters.at(0));
     } catch (const std::exception &exception) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::FNF_SOURCE << '\n';
     }
 }
 
@@ -176,23 +174,23 @@ void fnct::outcp(const std::vector<std::string> &parameters, FileSystem *fileSys
     }
 
     if (parameters.empty() || parameters.size() < 2 || parameters.at(0).empty() || parameters.at(1).empty()) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
 
     std::filesystem::path hddPath(parameters.at(1));
     if (!hddPath.has_filename()) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
 
     if (std::filesystem::exists(hddPath) || std::filesystem::is_directory(hddPath)) {
-        std::cout << fnct::CANNOT_CREATE_FILE << '\n';
+        std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
 
     if (hddPath.has_parent_path() && !std::filesystem::exists(hddPath.parent_path())) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::PNF_DEST<< '\n';
         return;
     }
 
@@ -221,7 +219,7 @@ void fnct::info(const std::vector<std::string> &parameters, FileSystem *fileSyst
     }
 
     if (parameters.empty() || parameters.at(0).empty()) {
-        std::cout << fnct::FNF_SOURCE << '\n';
+        std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
 
@@ -239,14 +237,14 @@ void fnct::mkdir(const std::vector<std::string> &parameters, FileSystem *fileSys
     }
 
     if (parameters.empty() || parameters.at(0).empty()) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
 
     try {
         fileSystem->createDirectory(parameters.at(0));
-    } catch (const std::exception &exception) {
-        std::cout << fnct::PNF_DEST << '\n';
+    } catch (const std::exception &ex) {
+        std::cout << ex.what() << '\n';
         return;
     }
 
@@ -260,14 +258,14 @@ void fnct::rmdir(const std::vector<std::string> &parameters, FileSystem *fileSys
     }
 
     if (parameters.empty() || parameters.at(0).empty()) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
 
     try {
         fileSystem->removeDirectory(parameters.at(0));
     } catch (const std::exception &ex) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << ex.what() << '\n';
         return;
     }
 
@@ -281,14 +279,14 @@ void fnct::cp(const std::vector<std::string> &parameters, FileSystem *fileSystem
     }
 
     if (parameters.empty() || parameters.at(0).empty() || parameters.at(1).empty()) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
 
     try {
         fileSystem->copyFile(parameters.at(0), parameters.at(1));
     } catch (const std::exception &ex) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << ex.what() << '\n';
     }
 
     std::cout << fnct::OK << '\n';
@@ -302,14 +300,14 @@ void fnct::mv(const std::vector<std::string> &parameters, FileSystem *fileSystem
     }
 
     if (parameters.empty() || parameters.at(0).empty() || parameters.at(1).empty()) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
 
     try {
         fileSystem->moveFile(parameters.at(0), parameters.at(1));
     } catch (const std::exception &ex) {
-        std::cout << fnct::PNF_DEST << '\n';
+        std::cout << ex.what() << '\n';
         return;
     }
 
