@@ -17,18 +17,18 @@ private: //private attributes
     /**
      * Cause of the exception.
      */
-    const char* cause;
+    const char* m_cause;
 public:
     /**
      * Creates an instance of this exception with given cause.
      *
      * @param cause cause of the exception
      */
-    explicit ObjectNotFound(const char *cause = "") : cause(cause) {
+    explicit ObjectNotFound(const char *cause = "") : m_cause(cause) {
         //
     }
 
-    explicit ObjectNotFound(const std::string& cause) : cause(cause.data()) {
+    explicit ObjectNotFound(const std::string& cause) : m_m_cause(cause.data()) {
         //
     }
 
