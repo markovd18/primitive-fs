@@ -32,7 +32,8 @@ private: //private attributes
             {"cat", &fnct::cat},
             {"outcp", &fnct::outcp},
             {"info", &fnct::info},
-            {"mkdir", &fnct::mkdir}
+            {"mkdir", &fnct::mkdir},
+            {"rmdir", &fnct::rmdir}
     };
 public: //public methods
 

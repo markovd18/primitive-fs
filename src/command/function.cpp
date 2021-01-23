@@ -142,6 +142,7 @@ void fnct::rm(const std::vector<std::string> &parameters, FileSystem *fileSystem
         fileSystem->removeFile(parameters.at(0));
     } catch (const std::exception &ex) {
         std::cout << fnct::PNF_DEST << '\n';
+        return;
     }
 
     std::cout << fnct::OK << '\n';
@@ -243,6 +244,29 @@ void fnct::mkdir(const std::vector<std::string> &parameters, FileSystem *fileSys
         fileSystem->createDirectory(parameters.at(0));
     } catch (const std::exception &exception) {
         std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    std::cout << fnct::OK << '\n';
+}
+
+void fnct::rmdir(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.at(0).empty()) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+
+    try {
+        fileSystem->removeDirectory(parameters.at(0));
+    } catch (const std::exception &ex) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
     }
 
     std::cout << fnct::OK << '\n';

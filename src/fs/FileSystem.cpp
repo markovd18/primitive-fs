@@ -1011,6 +1011,10 @@ void FileSystem::printFileInfo(const std::filesystem::path &pathToFile) {
 }
 
 void FileSystem::createDirectory(const std::filesystem::path &path) {
+    if (path.empty()) {
+        throw std::invalid_argument("Path must not be empty!");
+    }
+
     std::filesystem::path directory;
     std::filesystem::path parent;
     if (path.has_filename()) {
@@ -1053,4 +1057,49 @@ void FileSystem::createDirectory(const std::filesystem::path &path) {
     /// Returning back to the original directory
     m_currentDirInode = currentInode;
     m_currentDirPath = currentDir;
+}
+
+void FileSystem::removeDirectory(const std::filesystem::path &path) {
+    if (path.empty()) {
+        throw std::invalid_argument("Path must not be empty!");
+    }
+
+    std::filesystem::path directory;
+    std::filesystem::path parent;
+    if (path.has_filename()) {
+        directory = path.filename();
+        parent = path.parent_path();
+    } else {
+        directory = path.parent_path().filename();
+        parent = path.parent_path().parent_path();
+    }
+
+    const std::string currentDir = m_currentDirPath;
+    const fs::Inode currentInode = m_currentDirInode;
+
+    if (m_currentDirPath != parent && !parent.empty()) {
+        /// By changing to given path we not only get access to the i-node we need, but also validate it's existence
+        changeDirectory(parent);
+    }
+
+    fs::DirectoryItem dirItem = findDirectoryItem(directory);
+    fs::Inode inode = findInode(dirItem.getInodeId());
+    if (!inode.isDirectory()) {
+        throw std::invalid_argument("Soubor nelze smazet. Není složka!");
+    }
+    /// We fill direct links from the front, so the second one has to be EMPTY_LINK and the first one has to have stored only
+    /// . and .. directory items
+    if (inode.getDirectLinks()[1] != fs::EMPTY_LINK ||
+            getFreeDirItemDataBlockSubindex(inode.getDirectLinks()[0]) != 2 * sizeof(dirItem)) {
+        throw std::invalid_argument("Složku nelze smazat. Neni prázdná!");
+    }
+
+    removeDirectoryItem(directory.string());
+    clearInodeData(inode);
+
+    if (m_currentDirPath != parent && !parent.empty()) {
+        /// Returning back to the original directory
+        m_currentDirInode = currentInode;
+        m_currentDirPath = currentDir;
+    }
 }
