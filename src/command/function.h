@@ -97,5 +97,13 @@ namespace fnct {
      * @param fileSystem virtual file system that we want to access
      */
     void rmdir(const std::vector<std::string>& parameters, FileSystem* fileSystem);
+
+    /**
+     * Copies a file in virtual file system at given path to the second given path.
+     *
+     * @param parameters requires two parameters - path to an existing file, which is not a directory, and an existing path to a directory
+     * @param fileSystem virtual file system that we want to access
+     */
+    void cp(const std::vector<std::string>& parameters, FileSystem* fileSystem);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H

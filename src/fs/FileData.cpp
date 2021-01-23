@@ -27,7 +27,7 @@ namespace fs {
     }
 
     unsigned long FileData::size() const noexcept {
-        return m_dataBuffer.length() - 1;
+        return m_dataBuffer.length();
     }
 
     ClusteredFileData::ClusteredFileData(const std::string &data) : m_dataClusters(parseData(data)) {}

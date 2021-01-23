@@ -33,7 +33,8 @@ private: //private attributes
             {"outcp", &fnct::outcp},
             {"info", &fnct::info},
             {"mkdir", &fnct::mkdir},
-            {"rmdir", &fnct::rmdir}
+            {"rmdir", &fnct::rmdir},
+            {"cp", &fnct::cp}
     };
 public: //public methods
 

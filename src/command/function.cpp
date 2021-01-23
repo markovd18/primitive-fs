@@ -54,13 +54,16 @@ void fnct::incp(const std::vector<std::string> &parameters, FileSystem* fileSyst
     }
 
     const auto fileSize = std::filesystem::file_size(hddPath);
-    char fileBuffer[fileSize + 1];
+    char fileBuffer[fileSize];
     hddFile.read((char*)fileBuffer, fileSize);
-    fileBuffer[fileSize + 1] = 0;
+    std::string fileData;
+    for (const auto &c : fileBuffer) {
+        fileData += c;
+    }
     /// Adding null termination character, so we can simply work with dynamic strings
     /// Null termination character will be removed when saving into the data file
     try {
-        fileSystem->createFile(parameters.at(1), fs::FileData(fileBuffer));
+        fileSystem->createFile(parameters.at(1), fs::FileData(fileData));
         std::cout << fnct::OK << '\n';
     } catch (const std::invalid_argument& ex) {
         std::cout << fnct::PNF_DEST << '\n';
@@ -261,7 +264,6 @@ void fnct::rmdir(const std::vector<std::string> &parameters, FileSystem *fileSys
         return;
     }
 
-
     try {
         fileSystem->removeDirectory(parameters.at(0));
     } catch (const std::exception &ex) {
@@ -270,4 +272,25 @@ void fnct::rmdir(const std::vector<std::string> &parameters, FileSystem *fileSys
     }
 
     std::cout << fnct::OK << '\n';
+}
+
+void fnct::cp(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.at(0).empty() || parameters.at(1).empty()) {
+        std::cout << fnct::PNF_DEST << '\n';
+        return;
+    }
+
+    try {
+        fileSystem->copyFile(parameters.at(0), parameters.at(1));
+    } catch (const std::exception &ex) {
+        std::cout << fnct::PNF_DEST << '\n';
+    }
+
+    std::cout << fnct::OK << '\n';
+
 }
