@@ -1112,3 +1112,12 @@ void FileSystem::copyFile(const std::filesystem::path &pathFrom, const std::file
     std::string fileContent = getFileContent(pathFrom);
     createFile(pathTo, fs::FileData(fileContent));
 }
+
+void FileSystem::moveFile(const std::filesystem::path &pathFrom, const std::filesystem::path &pathTo) {
+    if (pathFrom.empty() || pathTo.empty()) {
+        throw std::invalid_argument("Paths must not be empty!");
+    }
+
+    copyFile(pathFrom, pathTo);
+    removeFile(pathFrom);
+}
