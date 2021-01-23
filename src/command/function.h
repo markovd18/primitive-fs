@@ -89,5 +89,13 @@ namespace fnct {
      * @param fileSystem
      */
     void mkdir(const std::vector<std::string>& parameters, FileSystem* fileSystem);
+
+    /**
+     * Removes a directory at given path, if it is empty.
+     *
+     * @param parameters requires one parameter - existing path to a directory in virtual file system
+     * @param fileSystem virtual file system that we want to access
+     */
+    void rmdir(const std::vector<std::string>& parameters, FileSystem* fileSystem);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H

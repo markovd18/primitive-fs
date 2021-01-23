@@ -254,6 +254,13 @@ public: //public methods
      */
     void createDirectory(const std::filesystem::path& path);
 
+    /**
+     * Removes directory at given path, if it is empty.
+     *
+     * @param path path to existing directory
+     */
+    void removeDirectory(const std::filesystem::path& path);
+
 private: //private methods
     /**
      * Writes superblock at the start of the file-system. Requires open input stream to data file passed. If
