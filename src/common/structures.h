@@ -399,10 +399,10 @@ namespace fs {
         [[nodiscard]] int32_t findFirstFreeIndex() const {
             /// We go through the entire bitmap
             for (std::size_t i = 0; i < m_length; ++i) {
-                for (std::size_t j = 7; j >= 0; --j) {
+                for (int j = 7; j >= 0; --j) {
                     if (!((m_bitmap[i] >> j) & 0b1)) {
                         /// If the bit is 0, we return it's index as the inode id
-                        return i + (7 - j);
+                        return (i * 8) + (7 - j);
                     }
                 }
             }
