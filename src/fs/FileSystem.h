@@ -13,6 +13,8 @@
 
 #include "../common/structures.h"
 #include "FileData.h"
+#include "InodeService.h"
+#include "DataService.h"
 
 /**
  * Represents the virtual file system loaded by the application. File system is represented by one file where
@@ -28,7 +30,7 @@ private: //private attributes
     /**
      * Is file system initialized?
      */
-    bool m_initialized;
+    bool m_initialized = false;
     /**
      * Superblock with fundamental information about the file system.
      */
@@ -49,6 +51,10 @@ private: //private attributes
      * Current working directory.
      */
     std::string m_currentDirPath;
+
+    pfs::InodeService m_inodeService;
+
+    pfs::DataService m_dataService;
 public: //public methods
     /**
      * Default constructor for initialization.
@@ -56,7 +62,7 @@ public: //public methods
      * @param fileName data-file name
      */
     explicit FileSystem(const std::string& fileName)
-        : m_dataFileName(fileName), m_initialized(false){
+        : m_dataFileName(fileName) {
         if (std::filesystem::exists(fileName)) {
             try {
                 initializeFromExisting();

@@ -287,18 +287,6 @@ namespace fs {
             }
         }
         /**
-         * Copy constructor.
-         *
-         * @param otherBitmap copied instance
-         */
-        Bitmap(const fs::Bitmap &otherBitmap)
-                    : m_length(otherBitmap.m_length), m_bitmap(otherBitmap.m_length ? new u_char[otherBitmap.m_length] : nullptr){
-            if (m_length) {
-                memset(m_bitmap, 0, m_length);
-            }
-        }
-
-        /**
          * Friend swap function, required for operator= and move constructor implementation.
          *
          * @param firstBitmap
@@ -310,6 +298,16 @@ namespace fs {
 
             swap(firstBitmap.m_length, secondBitmap.m_length);
             swap(firstBitmap.m_bitmap, secondBitmap.m_bitmap);
+        }
+
+        /**
+         * Copy constructor.
+         *
+         * @param otherBitmap copied instance
+         */
+        Bitmap(const fs::Bitmap &otherBitmap)
+                    : m_length(otherBitmap.m_length), m_bitmap(otherBitmap.m_length ? new u_char[otherBitmap.m_length] : nullptr){
+            std::copy(otherBitmap.m_bitmap, otherBitmap.m_bitmap + otherBitmap.m_length, m_bitmap);
         }
 
         /**
