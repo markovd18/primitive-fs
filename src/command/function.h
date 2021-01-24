@@ -113,5 +113,13 @@ namespace fnct {
      * @param fileSystem virtual file system that we want ot access
      */
     void mv(const std::vector<std::string>& parameters, FileSystem* fileSystem);
+
+    /**
+     * Loads a file from hard-disk drive with individual commands and executes them sequentially.
+     *
+     * @param parameters requires one parameter - path to an existing file with function commands
+     * @param fileSystem virtual file system that we want to access
+     */
+    void load(const std::vector<std::string> &parameters, FileSystem *fileSystem);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H

@@ -11,6 +11,7 @@
 #include "../fs/FileSystem.h"
 #include "returnval.h"
 #include "function.h"
+#include "FunctionMapper.h"
 
 void fnct::format(const std::vector <std::string>& parameters, FileSystem* fileSystem) {
     if (fileSystem == nullptr) {
@@ -278,7 +279,7 @@ void fnct::cp(const std::vector<std::string> &parameters, FileSystem *fileSystem
         return;
     }
 
-    if (parameters.empty() || parameters.at(0).empty() || parameters.at(1).empty()) {
+    if (parameters.empty() || parameters.size() < 2 || parameters.at(0).empty() || parameters.at(1).empty()) {
         std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
@@ -287,6 +288,7 @@ void fnct::cp(const std::vector<std::string> &parameters, FileSystem *fileSystem
         fileSystem->copyFile(parameters.at(0), parameters.at(1));
     } catch (const std::exception &ex) {
         std::cout << ex.what() << '\n';
+        return;
     }
 
     std::cout << fnct::OK << '\n';
@@ -299,7 +301,7 @@ void fnct::mv(const std::vector<std::string> &parameters, FileSystem *fileSystem
         return;
     }
 
-    if (parameters.empty() || parameters.at(0).empty() || parameters.at(1).empty()) {
+    if (parameters.empty() || parameters.size() < 2 ||parameters.at(0).empty() || parameters.at(1).empty()) {
         std::cout << fnct::INVALID_ARG << '\n';
         return;
     }
@@ -312,4 +314,45 @@ void fnct::mv(const std::vector<std::string> &parameters, FileSystem *fileSystem
     }
 
     std::cout << fnct::OK << '\n';
+}
+
+void fnct::load(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    if (parameters.empty() || parameters.at(0).empty()) {
+        std::cout << fnct::INVALID_ARG << '\n';
+        return;
+    }
+
+    if (!std::filesystem::exists(parameters.at(0)) || std::filesystem::is_directory(parameters.at(0))) {
+        std::cout << fnct::FNF_SOURCE << '\n';
+        return;
+    }
+
+    std::ifstream commandFile(parameters.at(0));
+    if (!commandFile) {
+        std::cout << fnct::FNF_SOURCE << '\n';
+        return;
+    }
+
+    std::string line;
+    while (std::getline(commandFile, line)) {
+        if (line.empty()) {
+            continue;
+        }
+        std::istringstream fileLine(line);
+        std::string token;
+        std::vector<std::string> params;
+        fileLine >> token;
+        Function function = FunctionMapper::getFunction(token);
+        while (!fileLine.eof()) {
+            fileLine >> token;
+            params.push_back(token);
+        }
+
+        function(params, fileSystem);
+    }
 }

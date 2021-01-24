@@ -169,6 +169,10 @@ void FileSystem::createFile(const std::filesystem::path &path, const fs::FileDat
         throw std::invalid_argument("Předaná cesta nekončí názvem souboru");
     }
 
+    if (path.filename().string().size() > 11) {
+        throw std::invalid_argument("Název souboru smí být maximálně 11 znaků dlouhý!");
+    }
+
     std::string pathStr(path.string());
     std::string pathNoFilename(pathStr.substr(0, pathStr.length() - path.filename().string().length()));
     /// We store current working directory, so we can return back in the end
@@ -202,12 +206,13 @@ void FileSystem::createFile(const std::filesystem::path &path, const fs::FileDat
     saveDirItemIntoCurrent(fs::DirectoryItem(path.filename(), inode.getInodeId()));
     m_currentDirInode.setFileSize(m_currentDirInode.getFileSize() + inode.getFileSize());
     saveInode(m_currentDirInode);
-
-    if (currentDir != pathNoFilename) {
-        /// Returning back to the original directory
-        m_currentDirInode = currentInode;
-        m_currentDirPath = currentDir;
+    while (m_currentDirPath != "/") {
+        changeDirectory("../");
+        m_currentDirInode.setFileSize(m_currentDirInode.getFileSize() + inode.getFileSize());
+        saveInode(m_currentDirInode);
     }
+
+    changeDirectory(currentDir);
 
 }
 
