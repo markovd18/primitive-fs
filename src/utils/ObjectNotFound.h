@@ -28,7 +28,7 @@ public:
         //
     }
 
-    explicit ObjectNotFound(const std::string& cause) : m_m_cause(cause.data()) {
+    explicit ObjectNotFound(const std::string& cause) : m_cause(cause.data()) {
         //
     }
 
@@ -38,7 +38,7 @@ public:
      * @return cause of the exception
      */
     [[nodiscard]] const char * what() const noexcept override {
-        return cause;
+        return m_cause;
     }
 };
 
