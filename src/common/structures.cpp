@@ -2,7 +2,6 @@
 // Author: markovd@students.zcu.cz
 //
 
-#include <fstream>
 #include <iostream>
 #include "structures.h"
 
@@ -325,17 +324,25 @@ namespace fs {
     }
 
     void Inode::clearDirectLink(const int32_t index) {
-        for (int & directLink : m_directLinks) {
-            if (directLink == index) {
-                directLink = fs::EMPTY_LINK;
+        for (int i = 0; i < m_directLinks.size(); ++i) {
+            if (m_directLinks[i] == index) {
+                for (int j = i + 1; j < m_directLinks.size(); ++j) {
+                    m_directLinks[j - 1] = m_directLinks[j];
+                }
+                m_directLinks[m_directLinks.size() - 1] = fs::EMPTY_LINK;
+                break;
             }
         }
     }
 
-    void Inode::clearIndirectLink(int32_t index) {
-        for (int &indirectLink : m_indirectLinks) {
-            if (indirectLink == index) {
-                indirectLink = fs::EMPTY_LINK;
+    void Inode::clearIndirectLink(const int32_t index) {
+        for (int i = 0; i < m_indirectLinks.size(); ++i) {
+            if (m_indirectLinks[i] == index) {
+                for (int j = i + 1; j < m_indirectLinks.size(); ++j) {
+                    m_indirectLinks[j - 1] = m_indirectLinks[j];
+                }
+                m_indirectLinks[m_indirectLinks.size() - 1] = fs::EMPTY_LINK;
+                break;
             }
         }
     }
