@@ -176,6 +176,14 @@ public: //public methods
      * @param pathTo new destination path of a file
      */
     void moveFile(const std::filesystem::path& pathFrom, const std::filesystem::path& pathTo);
+    /**
+     * Performs data consistence check. Results will be printed into the console.
+     */
+    void checkData();
+    /**
+     * Breaks data consistence to demonstrate checkData method functionality.
+     */
+    void breakData();
 private: //private methods
     /**
      * Writes superblock at the start of the file-system. Requires open input stream to data file passed. If

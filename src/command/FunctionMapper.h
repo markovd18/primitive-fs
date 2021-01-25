@@ -36,7 +36,9 @@ private: //private attributes
             {"rmdir", &fnct::rmdir},
             {"cp", &fnct::cp},
             {"mv", &fnct::mv},
-            {"load", &fnct::load}
+            {"load", &fnct::load},
+            {"check", &fnct::check},
+            {"break", &fnct::breakData}
     };
 public: //public methods
 

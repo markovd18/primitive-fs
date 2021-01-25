@@ -77,3 +77,22 @@ void pfs::InodeService::getRootInode(fs::Inode &rootInode) const {
     rootInode.load(dataFile, m_inodeStartAddress);
 }
 
+std::vector<fs::Inode> pfs::InodeService::getAllInodes() const {
+    std::vector<fs::Inode> inodes;
+    fs::Inode inode;
+
+    std::ifstream dataFile(m_dataFileName, std::ios::in | std::ios::binary);
+    if (!dataFile) {
+        throw std::ios::failure("Chyba při otevítání datového souboru");
+    }
+
+    for (int i = 0; i < m_inodeBitmap.getLength() * 8; ++i) {
+        if (m_inodeBitmap.isIndexFilled(i)) {
+            inode.load(dataFile, m_inodeStartAddress + i * sizeof(inode));
+            inodes.push_back(inode);
+        }
+    }
+
+    return inodes;
+}
+

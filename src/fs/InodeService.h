@@ -73,6 +73,11 @@ namespace pfs {
          * @param rootInode instance to store rootInode data into
          */
         void getRootInode(fs::Inode &rootInode) const;
+        /**
+         * Returns a vector of all inodes saved in the file system.
+         * @return vector of all inodes
+         */
+        [[nodiscard]] std::vector<fs::Inode> getAllInodes() const;
     };
 }
 
