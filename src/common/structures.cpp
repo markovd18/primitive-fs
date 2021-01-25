@@ -154,8 +154,6 @@ namespace fs {
             throw std::invalid_argument("Předaný datový soubor není otevřený k zápisu");
         }
 
-        std::cout << "Saving DirectoryItem: InodeId=" << m_inodeId << ", ItemName=" << m_itemName.data()
-            << "to address " << address << std::endl;
         dataFile.seekp(address, std::ios_base::beg);
         dataFile.write((char*)&m_inodeId, sizeof(m_inodeId));
         dataFile.write(m_itemName.data(), m_itemName.size());
@@ -170,8 +168,6 @@ namespace fs {
         dataFile.seekg(address, std::ios_base::beg);
         dataFile.read((char*)&m_inodeId, sizeof(m_inodeId));
         dataFile.read((char*)m_itemName.data(), m_itemName.size());
-        std::cout << "Loaded DirectoryItem: InodeId=" << m_inodeId << ", ItemName=" << m_itemName.data()
-                  << "from address " << address << std::endl;
     }
 
     Inode::Inode() {
@@ -266,8 +262,7 @@ namespace fs {
         if (!dataFile) {
             throw std::invalid_argument("Předaný datový soubor není otevřen k zápisu");
         }
-        std::cout << "Saving Inode: InodeId=" << m_inodeId << ", IsDirectory=" << m_isDirectory << ", FileSize=" << m_fileSize
-            << " to address " << address << std::endl;
+
         dataFile.seekp(address, std::ios_base::beg);
         dataFile.write((char*)&m_inodeId, sizeof(m_inodeId));
         dataFile.write((char*)&m_isDirectory, sizeof(m_isDirectory));
@@ -290,8 +285,6 @@ namespace fs {
         dataFile.read((char*)&m_fileSize, sizeof(m_fileSize));
         dataFile.read((char*)m_directLinks.data(), (m_directLinks.size() * sizeof(int32_t)));
         dataFile.read((char*)m_indirectLinks.data(), (m_indirectLinks.size() * sizeof(int32_t)));
-        std::cout << "Loaded Inode: InodeId=" << m_inodeId << ", IsDirectory=" << m_isDirectory << ", FileSize=" << m_fileSize
-                  << " from address " << address << std::endl;
     }
 
     bool Inode::addDirectLink(int32_t address) {

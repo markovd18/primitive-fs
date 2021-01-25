@@ -353,7 +353,6 @@ namespace fs {
                 throw std::invalid_argument("Předaný datový soubor není otevřen pro zápis");
             }
 
-            std::cout << "Saving Bitmap: Length=" << m_length << ", Data=" << m_bitmap << "to address " << address << std::endl;
             dataFile.seekp(address, std::ios_base::beg);
             dataFile.write((char*)m_bitmap, m_length);
             dataFile.flush();
@@ -366,7 +365,6 @@ namespace fs {
 
             dataFile.seekg(address, std::ios_base::beg);
             dataFile.read((char*)m_bitmap, m_length);
-            std::cout << "Loaded Bitmap: Length=" << m_length << ", Data=" << m_bitmap << "from address " << address << std::endl;
         }
         /**
          * Returns given number of free indexes. Throws ObjectNotFound if none or less than given number of indexes is found.
