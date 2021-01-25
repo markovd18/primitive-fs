@@ -9,12 +9,6 @@ pfs::InodeService::InodeService(std::string mDataFileName, fs::Bitmap inodeBitma
                                 int32_t inodeBitmapAddress, int32_t inodeStartAddress)
                                 : m_dataFileName(std::move(mDataFileName)), m_inodeBitmap(std::move(inodeBitmap)),
                                 m_inodeBitmapAddress(inodeBitmapAddress), m_inodeStartAddress(inodeStartAddress) {
-    std::fstream dataFile(m_dataFileName, std::ios::out | std::ios::in | std::ios::binary);
-    if (!dataFile) {
-        throw std::ios::failure("Chyba při otevítání datového souboru!");
-    }
-
-    m_inodeBitmap.save(dataFile, m_inodeBitmapAddress);
 }
 
 int32_t pfs::InodeService::getInodeId() const {

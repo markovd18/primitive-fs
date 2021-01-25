@@ -116,40 +116,52 @@ namespace fs {
         Inode& operator=(const Inode& inode) = default;
         Inode& operator=(Inode&& inode) = default;
         ~Inode() = default;
-
+        /// Returns inode's ID
         [[nodiscard]] int32_t getInodeId() const;
-
+        /// Sets inode's ID to new value
         void setInodeId(int32_t nodeId);
-
+        /// Checks if inode is directory
         [[nodiscard]] bool isDirectory() const;
-
+        /// Sets inode's directory state to new value
         void setIsDirectory(bool isDirectory);
-
+        /// Returns number of references to this inode
         [[nodiscard]] int8_t getReferences() const;
-
+        /// Sets number of references to this inode to new value
         void setReferences(int8_t references);
-
+        /// Returns the size of a file represented by this inode
         [[nodiscard]] int32_t getFileSize() const;
-
+        /// Sets the size of a file, represented by this inode, to new value
         void setFileSize(int32_t fileSize);
-
+        /// Returns the array of direct data links
         [[nodiscard]] const std::array<int32_t, DIRECT_LINKS_COUNT> &getDirectLinks() const;
-
+        /// Returns the array if indirect data links
         [[nodiscard]] const std::array<int32_t, INDIRECT_LINKS_COUNT> &getIndirectLinks() const;
-
+        /**
+         * Returns the value of last filled direct data link.
+         * @return value of last filled data link
+         */
         [[nodiscard]] int32_t getLastFilledDirectLinkValue() const;
-
+        /**
+         * Returns the index if first free direct data link.
+         * @return index of first free direct data link
+         */
         [[nodiscard]] int32_t getFirstFreeDirectLink() const;
-
+        /**
+         * Returns the value of last filled indirect data link.
+         * @return value of last filled indirect data link
+         */
         [[nodiscard]] int32_t getLastFilledIndirectLinkValue() const;
-
+        /**
+         * Returns the index of first free indirect data link.
+         * @return index of first free indirect data link
+         */
         [[nodiscard]] int32_t getFirstFreeIndirectLink() const;
-
+        /// Saves inode data into given data file at given address
         void save(std::fstream& dataFile, size_t address) const;
+        /// Loads inode data from given data file from given address
         void load(std::ifstream& dataFile, size_t address);
-
+        /// Adds given direct link to this inode
         bool addDirectLink(int32_t index);
-
         /**
          * @brief Clears direct link with given address
          * @param address address to remove from direct links
@@ -157,9 +169,8 @@ namespace fs {
          * Checks if given address is one of inode's direct links and if so, sets the index to @a EMPTY_LINK
          */
         void clearDirectLink(int32_t address);
-
+        /// Adds indirect link to this inode
         bool addIndirectLink(int32_t address);
-
         /**
          * @brief Clears direct link with given address
          * @param address address to remove from indirect links
@@ -167,19 +178,16 @@ namespace fs {
          * Checks if given address is one of inode's indirect links and if so, sets the index to @a EMPTY_LINK
          */
         void clearIndirectLink(int32_t address);
-
         /**
          * Clears all direct and indirect links, setting them to @a fs::EMPTY_LINK
          */
         void clearData();
-
         /**
          * Fills this inode's direct and indirect links with given data links.
          *
          * @param dataLinks data links to fill inode with
          */
         void setData(const fs::DataLinks& dataLinks);
-
     private://private methods
         void init() {
             m_directLinks.fill(EMPTY_LINK);
@@ -262,8 +270,9 @@ namespace fs {
         [[nodiscard]] int32_t getInodeId() const;
         /** Getter for item name. */
         [[nodiscard]] const std::array<char, DIR_ITEM_NAME_LENGTH> &getItemName() const;
-
+        /// Saves directory item data to given data file at given address
         void save(std::fstream& dataFile, size_t address) const;
+        /// Loads directory item data from given data file from given address
         void load(std::ifstream& dataFile, size_t address);
     };
 
@@ -335,15 +344,15 @@ namespace fs {
         ~Bitmap(){
             delete[] m_bitmap;
         }
-
+        /// Returns stored bitmap array
         [[nodiscard]] u_char *getBitmap() const {
             return m_bitmap;
         }
-
+        /// Returns the length od this bitmap array
         [[nodiscard]] size_t getLength() const {
             return m_length;
         }
-
+        /// Saves bitmap data into given data file to given address
         void save(std::fstream& dataFile, const size_t address) const {
             if (!dataFile.is_open()) {
                 throw std::invalid_argument("Předaný datový soubor není otevřen pro zápis");
@@ -354,7 +363,7 @@ namespace fs {
             dataFile.write((char*)m_bitmap, m_length);
             dataFile.flush();
         }
-
+        /// Loads bitmap data from given data file from given address
         void load(std::ifstream& dataFile, const size_t address) {
             if (!dataFile.is_open()) {
                 throw std::invalid_argument("Předaný datový soubor není otevřen ke čtení");
@@ -364,7 +373,6 @@ namespace fs {
             dataFile.read((char*)m_bitmap, m_length);
             std::cout << "Loaded Bitmap: Length=" << m_length << ", Data=" << m_bitmap << "from address " << address << std::endl;
         }
-
         /**
          * Returns given number of free indexes. Throws ObjectNotFound if none or less than given number of indexes is found.
          *

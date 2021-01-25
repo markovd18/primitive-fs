@@ -512,10 +512,20 @@ void FileSystem::removeDirectory(const std::filesystem::path &path) {
     if (!inode.isDirectory()) {
         throw std::invalid_argument(fnct::FNF_DIR);
     }
-    /// We fill direct links from the front, so the second one has to be EMPTY_LINK and the first one has to have stored only
-    /// . and .. directory items
-    if (inode.getDirectLinks()[1] != fs::EMPTY_LINK ||
-            m_dataService.getFreeDirItemDataBlockSubindex(inode.getDirectLinks()[0]) != 2 * sizeof(dirItem)) {
+
+    for (int i = 1; i < inode.getDirectLinks().size(); ++i) {
+        if (inode.getDirectLinks()[i] != fs::EMPTY_LINK) {
+            throw pfs::InvalidState(fnct::NOT_EMPTY);
+        }
+    }
+
+    for (const auto& indirectLink : inode.getIndirectLinks()) {
+        if (indirectLink != fs::EMPTY_LINK) {
+            throw pfs::InvalidState(fnct::NOT_EMPTY);
+        }
+    }
+
+    if (m_dataService.getFreeDirItemDataBlockSubindex(inode.getDirectLinks()[0]) != 2 * sizeof(dirItem)) {
         throw pfs::InvalidState(fnct::NOT_EMPTY);
     }
 

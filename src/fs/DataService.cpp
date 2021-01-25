@@ -284,7 +284,7 @@ void pfs::DataService::saveDirItemToIndirect(const fs::DirectoryItem& directoryI
         /// Last filled indirect link is full, we save into next indirect link
         if (directory.getFirstFreeIndirectLink() == directory.getIndirectLinks().size()) {
             /// Every direct and indirect link of current directory is filled, cannot save any more items
-            throw pfs::ObjectNotFound("Cannot save any more directory items to given directory!");
+            throw pfs::ObjectNotFound("Do předaného adresáře nelze uložit další soubory!");
         }
 
         saveDirItemToFreeIndirectLink(directoryItem, directory);
