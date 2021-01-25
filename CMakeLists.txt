@@ -24,3 +24,5 @@ add_executable(primitive_fs ${SOURCES})
 
 #setting output directory for generated executable to the project root
 set_target_properties(primitive_fs PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
+
+target_link_libraries(primitive_fs stdc++fs)
