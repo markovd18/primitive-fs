@@ -8,6 +8,10 @@
 namespace fs {
 
     Superblock::Superblock(const size_t newDiskSize) : m_signature(), m_volumeDescription() {
+        if (newDiskSize > 1000 || newDiskSize < 2) {
+            std::cout << "Prosím, zadejte velikost disku mezi 2 a 1000 MB!";
+            return;
+        }
         strncpy(m_signature.data(), AUTHOR_NAME, SIGNATURE_LENGTH);
         strncpy(m_volumeDescription.data(), VOLUME_DESCRIPTION, VOLUME_DESC_LENGTH);
         /**
