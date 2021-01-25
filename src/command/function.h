@@ -121,5 +121,20 @@ namespace fnct {
      * @param fileSystem virtual file system that we want to access
      */
     void load(const std::vector<std::string> &parameters, FileSystem *fileSystem);
+
+    /**
+     * Performs data consistence check throughout the file system.
+     * @param parameters requires no parameters, none of given parameters will be used
+     * @param fileSystem file system to check
+     */
+    void check(const std::vector<std::string> &parameters, FileSystem* fileSystem);
+
+    /**
+     * Breaks data consistence. Only used to demonstrate data consistence check.
+     *
+     * @param parameters requires no parameters, none of given parameters will be used
+     * @param fileSystem file system to break
+     */
+    void breakData(const std::vector<std::string> &parameters, FileSystem* fileSystem);
 }
 #endif //PRIMITIVE_FS_FUNCTION_H

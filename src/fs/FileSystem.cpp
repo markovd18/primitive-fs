@@ -476,8 +476,7 @@ void FileSystem::createDirectory(const std::filesystem::path &path) {
     m_inodeService.saveInode(m_currentDirInode);
 
     /// Returning back to the original directory
-    m_currentDirInode = currentInode;
-    m_currentDirPath = currentDir;
+    changeDirectory(currentDir);
 }
 
 void FileSystem::removeDirectory(const std::filesystem::path &path) {
@@ -566,4 +565,63 @@ void FileSystem::moveFile(const std::filesystem::path &pathFrom, const std::file
 
     copyFile(pathFrom, pathTo);
     removeFile(pathFrom);
+}
+
+void FileSystem::checkData() {
+    /// File size check
+    std::vector<fs::Inode> inodes = m_inodeService.getAllInodes();
+    std::string content;
+    fs::Inode root;
+    m_inodeService.getRootInode(root);
+    std::vector<fs::DirectoryItem> directoryItems = m_dataService.getDirectoryItems(root);
+
+    for (const auto &inode : inodes) {
+        if (inode.getInodeId() == 0) {
+            continue; /// Not checking root
+        }
+        if (!inode.isDirectory()) {
+            content = m_dataService.getFileContent(inode);
+            if (content.length() != inode.getFileSize()) {
+                std::cout << "Velikost souboru v I-uzlu " << inode.getInodeId() << " (" << inode.getFileSize()
+                          << ") neodpovídá velikosti uložených dat (" << content.length() << ")!\n";
+            }
+        } else {
+            std::vector<fs::DirectoryItem> dirItems = m_dataService.getDirectoryItems(inode);
+            directoryItems.insert(directoryItems.end(), std::make_move_iterator(dirItems.begin()), std::make_move_iterator(dirItems.end()));
+        }
+    }
+
+    for (const auto &inode : inodes) {
+        if (inode.getInodeId() == 0) {
+            continue; /// Not checking root
+        }
+
+        bool isInDirectory = false;
+        for (auto &dirItem : directoryItems) {
+            if (dirItem.getInodeId() == inode.getInodeId() && (!dirItem.nameEquals(".") && !dirItem.nameEquals(".."))) {
+                isInDirectory = true;
+                break;
+            }
+        }
+
+        if (!isInDirectory) {
+            std::cout << "I-uzel s ID: " << inode.getInodeId() << " se nanachází v žádném adresáři!\n";
+        }
+    }
+
+    std::cout << "CHECK COMPLETE" << std::endl;
+}
+
+void FileSystem::breakData() {
+    fs::Inode root = m_inodeService.findInode(0);
+
+    std::vector<fs::DirectoryItem> rootItems = m_dataService.getDirectoryItems(root);
+    for (auto &dirItem : rootItems) {
+        if (!dirItem.nameEquals(".") && !dirItem.nameEquals("..")) {
+            m_dataService.removeDirectoryItem(dirItem.getItemName().data(), root);
+            fs::Inode inode = m_inodeService.findInode(dirItem.getInodeId());
+            inode.setData(fs::DataLinks(std::vector<int32_t>()));
+            m_inodeService.saveInode(inode);
+        }
+    }
 }

@@ -356,3 +356,21 @@ void fnct::load(const std::vector<std::string> &parameters, FileSystem *fileSyst
         function(params, fileSystem);
     }
 }
+
+void fnct::check(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    fileSystem->checkData();
+}
+
+void fnct::breakData(const std::vector<std::string> &parameters, FileSystem *fileSystem) {
+    if (fileSystem == nullptr || !fileSystem->isInitialized()) {
+        std::cout << "File system is not initialized!\n";
+        return;
+    }
+
+    fileSystem->breakData();
+}

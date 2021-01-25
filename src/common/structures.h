@@ -111,11 +111,6 @@ namespace fs {
     public: //public methods
         Inode();
         Inode(int32_t nodeId, bool isDirectory, int32_t fileSize);
-        Inode(Inode& inode) = default;
-        Inode(Inode&& inode) = default;
-        Inode& operator=(const Inode& inode) = default;
-        Inode& operator=(Inode&& inode) = default;
-        ~Inode() = default;
         /// Returns inode's ID
         [[nodiscard]] int32_t getInodeId() const;
         /// Sets inode's ID to new value
