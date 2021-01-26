@@ -35,7 +35,7 @@ namespace fs {
      */
     class Superblock {
     public: //public attributes
-        static constexpr size_t CLUSTER_SIZE = 1024;            //default cluster size in bytes
+        static constexpr size_t CLUSTER_SIZE = 4096;            //default cluster size in bytes
     private: //private attributes
         static constexpr size_t SIGNATURE_LENGTH = 10;          //length of author's signature
         static constexpr size_t VOLUME_DESC_LENGTH = 20;        //volume description length

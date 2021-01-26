@@ -198,7 +198,7 @@ void fnct::outcp(const std::vector<std::string> &parameters, FileSystem *fileSys
     std::string fileContent;
     try {
         fileContent = fileSystem->getFileContent(parameters.at(0));
-    } catch (const std::invalid_argument &ex) {
+    } catch (const std::exception &ex) {
         std::cout << fnct::FNF_SOURCE << '\n';
     }
 
